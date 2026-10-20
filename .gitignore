@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+pgdata/
+dagster_home/
+# données personnelles : jamais dans le dépôt public
+cv/
+tests/fixtures/email/*.eml
+*.dump

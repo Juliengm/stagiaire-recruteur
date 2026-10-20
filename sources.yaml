@@ -1,0 +1,355 @@
+# stagiaire-recruteur — sources initiales (seed de la table `sources`)
+# Voir SOURCES.md pour le détail. verified: true = constaté le 2026-10-20 ; false = à vérifier par un appel réel.
+# Secrets : référencés par ${VAR}, définis dans .env
+
+version: 1
+
+defaults:
+  schedule: daily
+  enabled: true
+  user_agent: "StagiaireRecruteur/0.1 (+mailto:${CONTACT_EMAIL})"
+  min_delay_seconds: 2
+
+sources:
+  # ───────────── API ─────────────
+  - id: reliefweb_mdg
+    name: ReliefWeb — Madagascar
+    kind: reliefweb_api
+    region: [mdg]
+    priority: 1
+    verified: true
+    config:
+      endpoint: https://api.reliefweb.int/v2/jobs
+      appname: ${RELIEFWEB_APPNAME}          # doit être pré-approuvé par ReliefWeb
+      body:
+        preset: latest
+        limit: 200
+        filter: {field: country.name, value: Madagascar}
+        fields:
+          include: [title, url, source.name, country.name, city.name, date.created,
+                    date.closing, type.name, career_categories.name, theme.name,
+                    experience.name, body]
+
+  - id: reliefweb_rss_mdg
+    name: ReliefWeb — flux RSS Madagascar (repli si pas d'appname)
+    kind: rss
+    region: [mdg]
+    priority: 1
+    verified: false                          # format du flux à vérifier sur reliefweb.int/jobs
+    enabled: false                           # activer seulement si reliefweb_mdg est indisponible
+    config:
+      url: https://reliefweb.int/jobs/rss.xml # ajouter les filtres de recherche Madagascar
+
+  - id: reliefweb_remote_me
+    name: ReliefWeb — home-based S&E / data
+    kind: reliefweb_api
+    region: [remote]
+    priority: 2
+    verified: false                          # noms de catégories à confirmer (fields tables)
+    config:
+      endpoint: https://api.reliefweb.int/v2/jobs
+      appname: ${RELIEFWEB_APPNAME}
+      body:
+        preset: latest
+        limit: 200
+        query: {value: "home-based OR remote OR \"home based\"", operator: OR}
+        filter:
+          field: career_categories.name
+          value: [Monitoring and Evaluation, Information Management]
+          operator: OR
+
+  - id: france_travail_lille
+    name: France Travail — Lille 30 km
+    kind: france_travail_api
+    region: [lille]
+    priority: 1
+    verified: true
+    config:
+      token_url: https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=%2Fpartenaire
+      search_url: https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search
+      client_id: ${FT_CLIENT_ID}
+      client_secret: ${FT_CLIENT_SECRET}
+      scope: api_offresdemploiv2             # vérifier si un scope supplémentaire est requis
+      common_params: {commune: "59350", distance: 30}
+      keyword_groups:
+        - "data analyst"
+        - "data engineer"
+        - "ingénieur données"
+        - "business intelligence"
+        - "chef de produit data"
+        - "chargé d'études"
+        - "suivi évaluation"
+        - "évaluation de projets"
+        - "RSE données"
+        - "solidarité internationale"
+
+  - id: worldbank_procnotices_mdg
+    name: Banque mondiale — avis de passation Madagascar
+    kind: worldbank_procnotices
+    region: [mdg]
+    priority: 1
+    verified: false                          # endpoint ✅, paramètres de filtre à confirmer
+    config:
+      endpoint: https://search.worldbank.org/api/v2/procnotices
+      params: {format: json, countryshortname_exact: Madagascar, rows: 100, os: 0,
+               srt: submission_date, order: desc}
+      fallback_endpoint: https://datacatalogapi.worldbank.org/dexapps/fone/api/view
+      fallback_params: {viewId: DS01594, top: 1000, skip: 0, type: json}
+      keep_if:
+        notice_type_contains: ["Expression of Interest", "Manifestation"]
+        method_contains: ["Consultant"]
+
+  - id: adzuna_lille
+    name: Adzuna — Lille
+    kind: adzuna_api
+    region: [lille]
+    priority: 2
+    verified: false
+    config:
+      endpoint: https://api.adzuna.com/v1/api/jobs/fr/search/{page}
+      app_id: ${ADZUNA_APP_ID}
+      app_key: ${ADZUNA_APP_KEY}
+      params: {where: Lille, distance: 30, max_days_old: 7, results_per_page: 50}
+      keyword_groups: ["data analyst", "data engineer", "chargé d'études", "suivi évaluation"]
+
+  - id: csp_hauts_de_france
+    name: Choisir le service public — Nord
+    kind: csv_dataset
+    region: [lille]
+    priority: 3
+    schedule: weekly
+    verified: true
+    config:
+      url: https://www.data.gouv.fr/api/1/datasets/r/867034a2-2fa1-41b4-bd39-c84691ea618f
+      filter: {departement: "59"}            # nom de colonne à lire dans la doc du jeu de données
+
+  # ───────────── RSS / agrégateurs ─────────────
+  - id: unvacancies_all
+    name: UN Vacancies — flux global
+    kind: rss
+    region: [global]
+    priority: 1
+    verified: true
+    config:
+      url: https://unvacancies.org/feed.xml
+      field_map: {organization: category}
+      local_filter: {any_text: [Madagascar, Antananarivo, home-based, remote]}
+
+  - id: unvacancies_mdg_html
+    name: UN Vacancies — page Madagascar
+    kind: html_list
+    region: [mdg]
+    priority: 1
+    verified: true
+    config:
+      url: https://unvacancies.org/jobs/location/madagascar
+      selectors: {}                          # à relever (page Next.js rendue côté serveur)
+
+  - id: lesopportunites_mdg
+    name: Les Opportunités — Madagascar
+    kind: rss
+    region: [mdg]
+    priority: 1
+    verified: false                          # flux global ✅ ; flux pays au format WordPress à tester
+    config:
+      url: https://www.lesopportunites.com/pays/madagascar/feed/
+      fallback_url: https://www.lesopportunites.com/feed
+      local_filter: {url_contains: /opportunite/madagascar/}
+
+  - id: ngojobsinafrica_mdg
+    name: NGO Jobs in Africa — Madagascar
+    kind: html_list
+    region: [mdg]
+    priority: 1
+    verified: true
+    config:
+      url: https://ngojobsinafrica.com/job-location/madagascar/
+      pagination: "{url}page/{n}/"
+      max_pages: 3
+      selectors: {}                          # à relever ; liens /job/{slug}/ et /non-profit-organization/{slug}/
+      try_feed_first: https://ngojobsinafrica.com/job-location/madagascar/feed/
+
+  - id: untalent_me_mdg
+    name: UN Talent — S&E Madagascar
+    kind: html_list
+    region: [mdg]
+    priority: 2
+    verified: false                          # vérifier robots.txt avant d'activer
+    enabled: false
+    config:
+      url: https://untalent.org/jobs/in-monitoring-evaluation/contract-all/madagascar
+
+  - id: makesense_jobs
+    name: makesense jobs
+    kind: html_list
+    region: [lille, remote]
+    priority: 3
+    verified: false
+    config:
+      url: https://jobs.makesense.org/fr/s/jobs/all/all
+      local_filter: {any_text: [Lille, Roubaix, Villeneuve, Hauts-de-France, télétravail]}
+
+  - id: asako_mg
+    name: Asako.mg
+    kind: html_list
+    region: [mdg]
+    priority: 3
+    verified: false
+    config:
+      url: https://www.asako.mg/annonces      # page de liste à confirmer
+
+  # ───────────── ATS ─────────────
+  - id: exotec
+    name: Exotec
+    kind: workable
+    region: [lille]
+    priority: 3
+    verified: true
+    config: {account: exotec}
+
+  - id: kiabi
+    name: Kiabi
+    kind: smartrecruiters
+    region: [lille]
+    priority: 3
+    verified: false
+    config: {company_id: Kiabi}               # identifiant à confirmer
+
+  - id: ovhcloud
+    name: OVHcloud
+    kind: successfactors_rmk
+    region: [lille]
+    priority: 3
+    verified: false
+    config:
+      base_url: https://careers.ovhcloud.com
+      local_filter: {any_text: [Roubaix, Lille, Croix]}
+
+  - id: expertise_france
+    name: Expertise France
+    kind: gestmax
+    region: [mdg, remote]
+    priority: 2
+    verified: true
+    config:
+      url: https://expertise-france.gestmax.fr/search/index/lang/en_US
+
+  - id: afd
+    name: AFD
+    kind: cornerstone
+    region: [mdg, global]
+    priority: 3
+    verified: false                          # liste chargée en JS
+    config:
+      url: https://afd.csod.com/ux/ats/careersite/5/home?c=afd
+
+  - id: worldbank_careers
+    name: Groupe Banque mondiale — carrières
+    kind: cornerstone
+    region: [mdg, global]
+    priority: 3
+    verified: false
+    config:
+      url: https://worldbankgroup.csod.com/ats/careersite/search.aspx?site=6
+
+  # ───────────── HTML / PDF propres ─────────────
+  - id: fid_consultants
+    name: FID — consultants externes
+    kind: html_list
+    region: [mdg]
+    priority: 1
+    verified: false
+    config:
+      url: https://recrutement.fid-server.org/consultant-externe
+      extra_urls: [https://recrutement-prestataire.fid-server.org]
+
+  - id: giz_madagascar
+    name: GIZ Madagascar
+    kind: pdf_page
+    region: [mdg]
+    priority: 2
+    schedule: weekly
+    verified: true
+    config:
+      url: https://www.giz.de/madagascar
+      pdf_link_pattern: "/sites/default/files/media/els-document/"
+
+  - id: helvetas_jobs
+    name: Helvetas
+    kind: html_list
+    region: [mdg, global]
+    priority: 3
+    schedule: weekly
+    verified: true
+    config:
+      url: https://www.helvetas.org/en/switzerland/who-we-are/jobs
+      local_filter: {any_text: [Madagascar]}
+
+  - id: seed_madagascar
+    name: SEED Madagascar
+    kind: html_list
+    region: [mdg]
+    priority: 2
+    schedule: weekly
+    verified: true
+    config: {url: "https://madagascar.co.uk/jobs"}
+
+  - id: impact_initiatives
+    name: IMPACT Initiatives / REACH
+    kind: html_list
+    region: [remote, global]
+    priority: 2
+    verified: true
+    config:
+      url: https://www.impact-initiatives.org/work-with-us/vacancies/
+      try_feed_first: https://www.impact-initiatives.org/feed/
+
+  - id: blue_ventures
+    name: Blue Ventures
+    kind: unknown                             # lancer detect_ats.py
+    region: [mdg]
+    priority: 2
+    verified: false
+    config: {url: "https://careers.blueventures.org/jobs"}
+
+  - id: jirama_ami
+    name: JIRAMA — AMI
+    kind: rss
+    region: [mdg]
+    priority: 3
+    schedule: weekly
+    verified: false
+    config: {url: "https://www.jirama.mg/feed/"}
+
+  - id: captivea
+    name: Captivea
+    kind: html_list
+    region: [mdg]
+    priority: 3
+    schedule: weekly
+    verified: false
+    config: {url: "https://www.captivea.com/jobs"}
+
+  # ───────────── Alertes e-mail ─────────────
+  - id: email_alerts
+    name: Boîte d'alertes (LinkedIn, UNjobs, Impactpool, DevelopmentAid, WTTJ, APEC…)
+    kind: imap_alert
+    region: [mdg, lille, remote]
+    priority: 1
+    verified: false
+    config:
+      host: imap.gmail.com
+      port: 993
+      user: ${IMAP_USER}                      # adresse-de-collecte@example.org
+      processed_label: traité
+      source_from_plus_suffix: true           # adresse-de-collecte+unjobs@gmail.com → parseur unjobs
+      password: ${IMAP_PASSWORD}
+      folder: INBOX
+      parsers:                                # expéditeur → parseur (adresses à relever sur les vrais e-mails)
+        linkedin: {from_contains: linkedin.com}
+        unjobs: {from_contains: unjobs.org}
+        impactpool: {from_contains: impactpool.org}
+        developmentaid: {from_contains: developmentaid.org}
+        welcometothejungle: {from_contains: welcometothejungle}
+        apec: {from_contains: apec.fr}
+        untalent: {from_contains: untalent.org}

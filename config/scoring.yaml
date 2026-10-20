@@ -1,0 +1,62 @@
+# Mots-clés, poids et seuil du récapitulatif. Modifiable sans toucher au code.
+threshold: 0.25          # final_score minimal pour apparaître dans le récapitulatif
+rule_score_cap: 20       # rule_score ramené à [0,1] par min(score/cap, 1)
+
+profiles:
+  NP5_FR:
+    réinstallation: 3
+    reinstallation: 3
+    resettlement: 3
+    sauvegardes: 2
+    safeguards: 2
+    compensation: 2
+    recensement: 2
+    "plan d'action": 1
+    nes5: 3
+    pap: 1
+  DATA_FR:
+    data: 2
+    données: 2
+    bi: 1
+    plateforme: 1
+    odk: 3
+    kobo: 3
+    python: 2
+    "base de données": 2
+    "tableau de bord": 2
+    sig: 1
+    gis: 1
+    dashboard: 2
+  MEAL_EN:
+    meal: 3
+    "m&e": 3
+    monitoring: 2
+    evaluation: 2
+    évaluation: 2
+    suivi: 1
+    learning: 1
+    baseline: 2
+    endline: 2
+    survey: 2
+    enquête: 2
+    socio-economic: 2
+    socio-économique: 2
+
+location_bonus:
+  antananarivo: 3
+  madagascar: 2
+  lille: 3
+  remote: 1
+
+contract_bonus:
+  consultancy: 1
+
+excluded:               # malus de 5 par mot trouvé dans le titre
+  - stage
+  - stagiaire
+  - internship
+  - intern
+  - chauffeur
+  - comptable
+  - driver
+  - cleaner

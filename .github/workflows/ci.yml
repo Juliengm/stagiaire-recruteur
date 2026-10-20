@@ -1,0 +1,18 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: cd pipeline && uv sync --python 3.12
+      - run: cd pipeline && uv run ruff check . ../db
+      - run: cd pipeline && uv run mypy src
+      - run: cd pipeline && uv run pytest
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f pipeline/Dockerfile .
