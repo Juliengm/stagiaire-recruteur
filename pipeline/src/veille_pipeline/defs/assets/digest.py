@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from veille_pipeline.db import get_engine
 from veille_pipeline.defs.assets.common import SCORING_FILE
 from veille_pipeline.defs.assets.process import offers_scored
-from veille_pipeline.digest import render_digest, send_email
+from veille_pipeline.digest import render_digest, send_email, subject_for
 from veille_pipeline.scoring import load_scoring_config
 
 
@@ -42,7 +42,7 @@ def rapport_du_stagiaire() -> dg.MaterializeResult:
         if not offers:
             return dg.MaterializeResult(metadata={"offres": 0, "envoyé": False})
         to = os.environ.get("DIGEST_TO") or os.environ["CONTACT_EMAIL"]
-        send_email(render_digest(offers, today), f"Rapport du stagiaire — {len(offers)} offres", to,
+        send_email(render_digest(offers, today), subject_for(len(offers)), to,
                    os.environ.get("SMTP_HOST", "mailpit"), int(os.environ.get("SMTP_PORT", "1025")))
         session.add(Digest(channel="email", offer_ids=[o["id"] for o in offers]))
         session.commit()

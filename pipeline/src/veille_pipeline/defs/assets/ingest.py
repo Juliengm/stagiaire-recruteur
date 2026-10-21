@@ -81,4 +81,7 @@ def raw_offers(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
         session.commit()
         total = session.scalar(
             select(func.count()).select_from(RawOffer).where(RawOffer.source_id == source_id))
+    finalize = getattr(connector, "finalize", None)
+    if finalize:  # ex. e-mails : marqués « traités » seulement une fois les offres en base
+        context.log.info(f"{finalize(src)} message(s) marqué(s) comme traités")
     return dg.MaterializeResult(metadata={"récupérées": len(offers), "total_en_base": total})

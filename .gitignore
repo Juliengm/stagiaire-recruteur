@@ -10,5 +10,6 @@ dagster_home/
 # données personnelles : jamais dans le dépôt public
 cv/
 tests/fixtures/email/*.eml
+!tests/fixtures/email/*.anon.eml
 *.dump
 credentials/

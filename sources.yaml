@@ -350,7 +350,7 @@ sources:
         linkedin: {from_contains: linkedin.com}
         unjobs: {from_contains: unjobs.org}
         impactpool: {from_contains: impactpool.org}
-        developmentaid: {from_contains: developmentaid.org}
+        developmentaid: {from_contains: developmentaid.info}
         welcometothejungle: {from_contains: welcometothejungle}
         apec: {from_contains: apec.fr}
         untalent: {from_contains: untalent.org}
