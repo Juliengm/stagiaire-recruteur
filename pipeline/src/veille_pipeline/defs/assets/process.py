@@ -1,6 +1,3 @@
-import re
-import unicodedata
-
 import dagster as dg
 from db.models import Offer, OfferScore, OfferSource, RawOffer, Source
 from sqlalchemy import func, select
@@ -8,18 +5,11 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from veille_pipeline.db import get_engine
+from veille_pipeline.dedupe import Candidate, find_duplicates, fingerprint
 from veille_pipeline.defs.assets.common import SCORING_FILE
 from veille_pipeline.defs.assets.ingest import raw_offers
 from veille_pipeline.normalizers import NORMALIZERS
 from veille_pipeline.scoring import load_scoring_config, score_offer
-
-
-def fingerprint(title: str, organization: str | None) -> str:
-    def norm(s: str) -> str:
-        s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
-        return re.sub(r"[^a-z0-9]+", " ", s).strip()
-
-    return f"{norm(title)}|{norm(organization or '')}"
 
 
 @dg.asset(deps=[raw_offers], group_name="traitement")
@@ -59,22 +49,20 @@ def offers_normalized(context: dg.AssetExecutionContext) -> dg.MaterializeResult
 
 @dg.asset(deps=[offers_normalized], group_name="traitement")
 def offers_deduped(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
-    """Dédoublonnage exact : même empreinte titre + organisation → `duplicate_of` la plus ancienne."""
+    """Dédoublonnage : empreinte exacte puis similarité titre / organisation sur 60 jours."""
     marked = 0
     with Session(get_engine()) as session:
         offers = session.scalars(select(Offer).order_by(Offer.id)).all()
-        first: dict[str, int] = {}
+        duplicates = find_duplicates([
+            Candidate(o.id, o.title, o.organization, o.posted_at or o.first_seen_at.date())
+            for o in offers])
         for offer in offers:
-            if not offer.fingerprint:
-                continue
-            keeper = first.setdefault(offer.fingerprint, offer.id)
-            target = None if keeper == offer.id else keeper
+            target = duplicates.get(offer.id)
             if offer.duplicate_of != target:
                 offer.duplicate_of = target
                 marked += 1
         session.commit()
-        duplicates = sum(1 for o in offers if o.duplicate_of)
-        rate = duplicates / len(offers) if offers else 0.0
+        rate = len(duplicates) / len(offers) if offers else 0.0
     return dg.MaterializeResult(metadata={"nouveaux_doublons": marked, "taux_doublons": rate})
 
 
