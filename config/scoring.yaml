@@ -1,6 +1,9 @@
 # Mots-clés, poids et seuil du récapitulatif. Modifiable sans toucher au code.
 threshold: 0.25          # final_score minimal pour apparaître dans le récapitulatif
 rule_score_cap: 20       # rule_score ramené à [0,1] par min(score/cap, 1)
+title_multiplier: 3      # un mot-clé du titre vaut 3× son poids
+description_cap: 1       # points maximum venant de la description (tous profils confondus)
+no_keyword_cap: 0.1      # plafond si aucun mot-clé trouvé (le lieu seul ne suffit pas)
 
 profiles:
   NP5_FR:
@@ -27,6 +30,17 @@ profiles:
     sig: 1
     gis: 1
     dashboard: 2
+    "product owner": 3
+    "product manager": 2
+    "chef de produit": 3
+    "responsable produit": 3
+    "data product": 3
+    "data engineer": 3
+    "ingénieur données": 3
+    "ingénieur data": 3
+    "data analyst": 2
+    "analytics engineer": 2
+    pipeline: 1
   MEAL_EN:
     meal: 3
     "m&e": 3
@@ -47,6 +61,11 @@ location_bonus:
   madagascar: 2
   lille: 3
   remote: 1
+
+# Malus si l'offre n'est ni à Madagascar, ni à Lille/en France, ni en télétravail
+outside_zone_penalty: 10
+outside_zone_cap: 0.2      # plafond du score final : reste sous le seuil du rapport
+allowed_countries: [madagascar, france]
 
 contract_bonus:
   consultancy: 1

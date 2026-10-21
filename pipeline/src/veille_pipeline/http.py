@@ -52,10 +52,20 @@ class PoliteHttpClient:
         wait=wait_exponential(multiplier=2, max=30),
         reraise=True,
     )
-    def get(self, url: str, **kwargs) -> httpx.Response:
-        if not self.allowed(url):
+    def request(
+        self, method: str, url: str, *, check_robots: bool = True, **kwargs
+    ) -> httpx.Response:
+        # check_robots=False uniquement pour une API officielle dont l'accès est autorisé
+        # par l'opérateur (clé ou appname validé) : robots.txt vise les robots d'indexation.
+        if check_robots and not self.allowed(url):
             raise PermissionError(f"robots.txt interdit {url}")
         self._wait(urlparse(url).netloc)
-        resp = self._client.get(url, **kwargs)
+        resp = self._client.request(method, url, **kwargs)
         resp.raise_for_status()
         return resp
+
+    def get(self, url: str, **kwargs) -> httpx.Response:
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs) -> httpx.Response:
+        return self.request("POST", url, **kwargs)

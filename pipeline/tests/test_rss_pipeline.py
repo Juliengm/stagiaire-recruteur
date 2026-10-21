@@ -46,3 +46,40 @@ def test_scoring_prefers_matching_profile_and_penalizes_internship():
     assert good.recommended_cv == "MEAL_EN"
     assert good.final_score > 0.5
     assert intern.final_score == 0.0
+
+
+def test_onsite_job_outside_zone_is_penalized():
+    cfg = load_scoring_config(__import__("pathlib").Path(__file__).parents[2] / "config/scoring.yaml")
+    base = {"title": "Monitoring Evaluation Lead", "description": "", "contract_type": "cdd"}
+    abroad = score_offer({**base, "country": "Malawi", "remote": False}, cfg)
+    home = score_offer({**base, "country": "Madagascar", "remote": False}, cfg)
+    remote_abroad = score_offer({**base, "country": "Malawi", "remote": True}, cfg)
+    assert abroad.final_score < 0.25 <= home.final_score
+    assert remote_abroad.final_score >= 0.25
+
+
+def _cfg():
+    return load_scoring_config(__import__("pathlib").Path(__file__).parents[2] / "config/scoring.yaml")
+
+
+def test_description_alone_cannot_qualify_an_offer():
+    boilerplate = "suivi évaluation monitoring evaluation learning données data"
+    offer = {"title": "Assistant en passation de marchés", "description": boilerplate,
+             "country": "Madagascar", "contract_type": "consultancy", "language": "fr"}
+    assert score_offer(offer, _cfg()).final_score < 0.25
+
+
+def test_location_alone_is_never_relevant():
+    offer = {"title": "Chauffeur", "description": "", "country": "Madagascar", "city": "Antananarivo",
+             "contract_type": "consultancy"}
+    assert score_offer({**offer, "title": "Responsable logistique"}, _cfg()).final_score <= 0.1
+
+
+def test_cv_follows_offer_language():
+    meal = {"title": "Monitoring and evaluation specialist", "description": "", "country": "Madagascar",
+            "contract_type": "consultancy"}
+    data = {**meal, "title": "Responsable plateforme de données", "language": "fr"}
+    assert score_offer({**meal, "language": "en"}, _cfg()).recommended_cv == "MEAL_EN"
+    assert score_offer(data, _cfg()).recommended_cv == "DATA_FR"
+    # repli : une offre française qui ne parle que de S&E reçoit quand même un CV, pas None
+    assert score_offer({**meal, "language": "fr"}, _cfg()).recommended_cv == "MEAL_EN"

@@ -41,6 +41,8 @@ def offers_normalized(context: dg.AssetExecutionContext) -> dg.MaterializeResult
                 continue
             offer = normalizer(raw.payload, {"config": src.config})
             if not offer.title or not offer.canonical_url:
+                context.log.warning(
+                    f"offre ignorée (titre ou URL manquant) : {raw.source_id}/{raw.external_id}")
                 skipped += 1
                 continue
             values = {**offer.model_dump(), "fingerprint": fingerprint(offer.title, offer.organization)}
@@ -85,7 +87,7 @@ def offers_scored(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
         for offer in session.scalars(select(Offer).where(Offer.duplicate_of.is_(None))):
             score = score_offer(
                 {"title": offer.title, "description": offer.description, "city": offer.city,
-                 "country": offer.country, "remote": offer.remote,
+                 "country": offer.country, "remote": offer.remote, "language": offer.language,
                  "contract_type": offer.contract_type}, cfg)
             stmt = insert(OfferScore).values(
                 offer_id=offer.id, rule_score=score.rule_score, final_score=score.final_score,
