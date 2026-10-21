@@ -19,6 +19,7 @@ dependencies = [
     "google-api-python-client>=2.130",
     "google-auth-oauthlib>=1.2",
     "rapidfuzz>=3.14.6",
+    "pypdf>=6.21.1",
 ]
 
 [dependency-groups]

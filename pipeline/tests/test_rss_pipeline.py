@@ -83,3 +83,12 @@ def test_cv_follows_offer_language():
     assert score_offer(data, _cfg()).recommended_cv == "DATA_FR"
     # repli : une offre française qui ne parle que de S&E reçoit quand même un CV, pas None
     assert score_offer({**meal, "language": "fr"}, _cfg()).recommended_cv == "MEAL_EN"
+
+
+def test_teamtailor_rss_blue_ventures(fixtures):
+    src = {"id": "blue_ventures", "name": "Blue Ventures", "config": {"url": "x"}}
+    raws = RssConnector().parse((fixtures / "rss/blueventures_teamtailor.xml").read_bytes(), src, "blue_ventures")
+    assert raws and all(r.url and r.url.startswith("https://careers.blueventures.org/jobs/") for r in raws)
+    offer = normalize_rss(raws[0].payload, src)
+    assert offer.title and offer.description and "Closing date" in offer.description
+    assert str(offer.deadline) == "2026-11-03"

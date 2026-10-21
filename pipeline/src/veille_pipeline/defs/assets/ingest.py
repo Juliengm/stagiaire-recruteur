@@ -60,6 +60,9 @@ def raw_offers(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
     http = PoliteHttpClient(src["user_agent"], src.get("min_delay_seconds", 2))
     connector = CONNECTORS[src["kind"]]
     now = datetime.now(UTC)
+    with Session(get_engine()) as session:  # permet aux connecteurs d'éviter de retélécharger
+        src["known_external_ids"] = list(session.scalars(
+            select(RawOffer.external_id).where(RawOffer.source_id == source_id)))
     try:
         offers = list(connector.fetch(src, None, http))
     except Exception as exc:

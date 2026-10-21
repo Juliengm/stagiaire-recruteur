@@ -293,10 +293,12 @@ sources:
     region: [mdg]
     priority: 2
     schedule: weekly
-    verified: true
+    verified: false                          # giz.de injoignable depuis ce poste le 21/10/2026 (timeout TCP), à revérifier
+    enabled: false
     config:
       url: https://www.giz.de/madagascar
       pdf_link_pattern: "/sites/default/files/media/els-document/"
+      defaults: {organization: GIZ, country: Madagascar}
 
   - id: helvetas_jobs
     name: Helvetas
@@ -311,12 +313,15 @@ sources:
 
   - id: seed_madagascar
     name: SEED Madagascar
-    kind: html_list
+    kind: pdf_page                           # offres en PDF (liens « Titre (PDF) » → /download_file/{uuid}/{n})
     region: [mdg]
     priority: 2
     schedule: weekly
     verified: true
-    config: {url: "https://madagascar.co.uk/jobs"}
+    config:
+      url: https://madagascar.co.uk/jobs
+      pdf_link_pattern: "/download_file/"
+      defaults: {organization: SEED Madagascar, country: Madagascar, language: en}
 
   - id: impact_initiatives
     name: IMPACT Initiatives / REACH
@@ -330,11 +335,11 @@ sources:
 
   - id: blue_ventures
     name: Blue Ventures
-    kind: unknown                             # lancer detect_ats.py
+    kind: rss                                 # Teamtailor (détecté par scripts/detect_ats.py) : /jobs.rss
     region: [mdg]
     priority: 2
-    verified: false
-    config: {url: "https://careers.blueventures.org/jobs"}
+    verified: true
+    config: {url: "https://careers.blueventures.org/jobs.rss"}
 
   - id: jirama_ami
     name: JIRAMA — AMI

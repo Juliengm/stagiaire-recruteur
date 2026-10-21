@@ -6,6 +6,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from selectolax.lexbor import LexborHTMLParser
 
 from veille_pipeline.models import Offer
+from veille_pipeline.normalizers.dates import find_deadline
 
 _TRACKING = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "fbclid"}
 _FR_WORDS = re.compile(r"\b(le|la|les|des|pour|avec|dans|recrutement|appel|offre|poste)\b", re.IGNORECASE)
@@ -69,5 +70,6 @@ def normalize_rss(payload: dict, source: dict) -> Offer:
         contract_type=detect_contract(f"{title} {description or ''}"),
         language="fr" if len(_FR_WORDS.findall(text)) >= 2 else "en",
         posted_at=datetime.fromisoformat(posted).date() if posted else None,
+        deadline=find_deadline(description or ""),
         description=description,
     )
