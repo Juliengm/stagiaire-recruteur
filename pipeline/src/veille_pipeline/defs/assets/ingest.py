@@ -68,6 +68,9 @@ def raw_offers(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
             session.commit()
         raise
     with Session(get_engine()) as session:
+        known = set(session.scalars(
+            select(RawOffer.external_id).where(RawOffer.source_id == source_id)))
+        new_count = sum(1 for o in offers if o.external_id not in known)
         for offer in offers:
             stmt = insert(RawOffer).values(
                 source_id=offer.source_id, external_id=offer.external_id, url=offer.url,
@@ -77,11 +80,12 @@ def raw_offers(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
                 set_={"payload": stmt.excluded.payload, "content_hash": stmt.excluded.content_hash,
                       "url": stmt.excluded.url, "fetched_at": stmt.excluded.fetched_at}))
         session.execute(update(Source).where(Source.id == source_id).values(
-            last_success_at=now, last_error=None, consecutive_failures=0))
+            last_success_at=now, last_error=None, consecutive_failures=0,
+            consecutive_empty_runs=0 if new_count else Source.consecutive_empty_runs + 1))
         session.commit()
         total = session.scalar(
             select(func.count()).select_from(RawOffer).where(RawOffer.source_id == source_id))
     finalize = getattr(connector, "finalize", None)
     if finalize:  # ex. e-mails : marqués « traités » seulement une fois les offres en base
         context.log.info(f"{finalize(src)} message(s) marqué(s) comme traités")
-    return dg.MaterializeResult(metadata={"récupérées": len(offers), "total_en_base": total})
+    return dg.MaterializeResult(metadata={"récupérées": len(offers), "nouvelles": new_count, "total_en_base": total})

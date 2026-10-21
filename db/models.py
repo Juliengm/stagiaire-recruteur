@@ -36,6 +36,7 @@ class Source(Base):
     last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_error: Mapped[str | None] = mapped_column(Text)
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
+    consecutive_empty_runs: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
 class RawOffer(Base):
