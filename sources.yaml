@@ -148,7 +148,16 @@ sources:
     verified: true
     config:
       url: https://unvacancies.org/jobs/location/madagascar
-      selectors: {}                          # à relever (page Next.js rendue côté serveur)
+      # page Next.js rendue côté serveur (19 offres, sans pagination) ; sélecteurs sur data-* (classes Tailwind instables)
+      selectors:
+        item: li[data-landing-row]
+        id: "@data-job-id"
+        title: h3 a
+        url: h3 a@href
+        organization: "[data-landing-org] span.font-medium"
+        location: {css: "[data-landing-org]", attr: title, regex: "· (.+)$"}
+        deadline: {css: "[data-row-deadline]", attr: title, regex: "(\\d{1,2} [A-Za-z]{3} \\d{4})"}   # formes vues : « Closes 6 Nov 2026 », « in 2 days: closes 23 Oct 2026 », « today, 21 Oct 2026 at 23:59 UTC »
+      defaults: {country: Madagascar}
 
   - id: lesopportunites_mdg
     name: Les Opportunités — Madagascar
@@ -171,8 +180,17 @@ sources:
       url: https://ngojobsinafrica.com/job-location/madagascar/
       pagination: "{url}page/{n}/"
       max_pages: 3
-      selectors: {}                          # à relever ; liens /job/{slug}/ et /non-profit-organization/{slug}/
-      try_feed_first: https://ngojobsinafrica.com/job-location/madagascar/feed/
+      # le flux /feed/ existe mais ne donne que 10 offres, sans organisation : la page HTML est plus riche
+      selectors:
+        item: article.noo_job
+        title: h2.loop-item-title a
+        url: h2.loop-item-title a@href
+        organization: .job-company a
+        location: .job-location a
+        contract: .job-type a
+        posted: time.entry-date@datetime
+        deadline: {css: time.entry-date, regex: "- ([A-Za-z]+ \\d+, \\d{4})$"}
+      defaults: {country: Madagascar}
 
   - id: untalent_me_mdg
     name: UN Talent — S&E Madagascar
@@ -264,6 +282,7 @@ sources:
     region: [mdg]
     priority: 1
     verified: false
+    enabled: false                           # application React : la page est vide sans JavaScript, voir SOURCES.md
     config:
       url: https://recrutement.fid-server.org/consultant-externe
       extra_urls: [https://recrutement-prestataire.fid-server.org]

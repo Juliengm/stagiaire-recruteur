@@ -36,7 +36,9 @@ def sources_registry(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
                       "priority": stmt.excluded.priority, "schedule": stmt.excluded.schedule,
                       "enabled": stmt.excluded.enabled},
             ))
-            if src.get("enabled", True) and src["kind"] in CONNECTORS:
+            connector = CONNECTORS.get(src["kind"])
+            ready = getattr(connector, "is_configured", lambda _: True)
+            if src.get("enabled", True) and connector and ready(src):
                 active.append(src["id"])
         session.commit()
     existing = set(context.instance.get_dynamic_partitions(sources_partitions.name))
