@@ -45,7 +45,7 @@ sources:
     kind: reliefweb_api
     region: [remote]
     priority: 2
-    verified: false                          # noms de catégories à confirmer (fields tables)
+    verified: true                           # requête et noms de catégories vérifiés le 2026-10-21
     config:
       endpoint: https://api.reliefweb.int/v2/jobs
       appname: ${RELIEFWEB_APPNAME}
@@ -57,6 +57,9 @@ sources:
           field: career_categories.name
           value: [Monitoring and Evaluation, Information Management]
           operator: OR
+        fields:                              # sans `include`, l'API ne renvoie que le titre
+          include: [title, url, source.name, country.name, city.name, date.created,
+                    date.closing, type.name, career_categories.name, body]
 
   - id: france_travail_lille
     name: France Travail — Lille 30 km
@@ -64,6 +67,7 @@ sources:
     region: [lille]
     priority: 1
     verified: true
+    enabled: false                           # API Offres d'emploi v2 inaccessible aux particuliers (constaté le 2026-10-20) ; Lille couvert par Adzuna + alertes e-mail
     config:
       token_url: https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=%2Fpartenaire
       search_url: https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search
@@ -88,16 +92,15 @@ sources:
     kind: worldbank_procnotices
     region: [mdg]
     priority: 1
-    verified: false                          # endpoint ✅, paramètres de filtre à confirmer
+    verified: true                           # paramètres vérifiés le 2026-10-21 (voir SOURCES.md A3)
     config:
       endpoint: https://search.worldbank.org/api/v2/procnotices
-      params: {format: json, countryshortname_exact: Madagascar, rows: 100, os: 0,
-               srt: submission_date, order: desc}
-      fallback_endpoint: https://datacatalogapi.worldbank.org/dexapps/fone/api/view
-      fallback_params: {viewId: DS01594, top: 1000, skip: 0, type: json}
-      keep_if:
-        notice_type_contains: ["Expression of Interest", "Manifestation"]
-        method_contains: ["Consultant"]
+      params: {format: json, project_ctry_name_exact: Madagascar,
+               notice_type_exact: Request for Expression of Interest,
+               rows: 100, srt: submission_date, order: desc}
+      max_pages: 2
+      keep_if:                               # filtré en local : le serveur ignore ces critères
+        method_codes: [INDV]                 # consultants individuels ; ajouter CQS/QCBS/QBS pour les cabinets
 
   - id: adzuna_lille
     name: Adzuna — Lille
@@ -105,6 +108,7 @@ sources:
     region: [lille]
     priority: 2
     verified: false
+    enabled: false                           # payant (≈ 8 £/mois, constaté par Julien le 2026-10-20) : écarté
     config:
       endpoint: https://api.adzuna.com/v1/api/jobs/fr/search/{page}
       app_id: ${ADZUNA_APP_ID}
@@ -119,6 +123,7 @@ sources:
     priority: 3
     schedule: weekly
     verified: true
+    enabled: false                           # robots.txt de data.gouv.fr interdit /api/1/datasets/r/ et static.data.gouv.fr/resources (constaté le 2026-10-20) : en attente de décision de Julien
     config:
       url: https://www.data.gouv.fr/api/1/datasets/r/867034a2-2fa1-41b4-bd39-c84691ea618f
       filter: {departement: "59"}            # nom de colonne à lire dans la doc du jeu de données
@@ -332,20 +337,16 @@ sources:
 
   # ───────────── Alertes e-mail ─────────────
   - id: email_alerts
-    name: Boîte d'alertes (LinkedIn, UNjobs, Impactpool, DevelopmentAid, WTTJ, APEC…)
-    kind: imap_alert
+    name: Alertes e-mail du Gmail principal (LinkedIn, UNjobs, Impactpool, DevelopmentAid, WTTJ, APEC…)
+    kind: gmail_alert
     region: [mdg, lille, remote]
     priority: 1
     verified: false
     config:
-      host: imap.gmail.com
-      port: 993
-      user: ${IMAP_USER}                      # adresse-de-collecte@example.org
+      label: alertes-emploi                   # libellé posé par un filtre Gmail sur les alertes entrantes
       processed_label: traité
-      source_from_plus_suffix: true           # adresse-de-collecte+unjobs@gmail.com → parseur unjobs
-      password: ${IMAP_PASSWORD}
-      folder: INBOX
-      parsers:                                # expéditeur → parseur (adresses à relever sur les vrais e-mails)
+      oauth_token_file: ${GMAIL_TOKEN_FILE}   # jeton OAuth (scope de lecture + modification des libellés), hors dépôt
+      parsers:                                # expéditeur d'origine → parseur (adresses à relever sur les vrais e-mails)
         linkedin: {from_contains: linkedin.com}
         unjobs: {from_contains: unjobs.org}
         impactpool: {from_contains: impactpool.org}

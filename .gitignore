@@ -11,3 +11,4 @@ dagster_home/
 cv/
 tests/fixtures/email/*.eml
 *.dump
+credentials/

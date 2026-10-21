@@ -45,7 +45,7 @@ Moi, je m'occupe de la partie ingrate :
 | | |
 |---|---|
 | Orchestration | **Dagster** — chaque étape est un *asset*, avec des contrôles qualité (source muette, schéma, taux de doublons) |
-| Collecte | Python, `httpx`, `feedparser`, `selectolax`, IMAP ; un connecteur par type de source (API, RSS, Workday, SmartRecruiters, Workable…) |
+| Collecte | Python, `httpx`, `feedparser`, `selectolax`, API Gmail ; un connecteur par type de source (API, RSS, Workday, SmartRecruiters, Workable…) |
 | Stockage | **PostgreSQL** + `pgvector` |
 | Pertinence | règles de mots-clés + embeddings multilingues (FR/EN) comparés aux CV |
 | Rédaction | modèles Jinja2 + LLM, avec garde-fous vérifiés après génération |
@@ -68,7 +68,7 @@ de ce qu'il fait.
 ## Lancer le projet
 
 ```bash
-cp .env.example .env      # renseigner les clés (France Travail, Gmail, IMAP…)
+cp .env.example .env      # renseigner les clés (Gmail, ReliefWeb…)
 docker compose up -d
 # Dagster : http://localhost:3000 — Interface : http://localhost:8080
 ```
