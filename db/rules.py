@@ -13,6 +13,13 @@ STATUSES: tuple[str, ...] = get_args(Status)
 # candidatures à ne plus relancer : refus, sans réponse définitif, entretien obtenu, écartée
 CLOSED_STATUSES = frozenset({"ghosted", "ignored", "rejected", "interview"})
 
+# connecteurs écrits (clés de veille_pipeline.connectors.CONNECTORS, vérifié par un test) :
+# seuls types acceptés pour une source ajoutée depuis l'interface
+CONNECTOR_KINDS = frozenset({
+    "rss", "csv_dataset", "reliefweb_api", "worldbank_procnotices", "gmail_alert", "html_list",
+    "pdf_page", "workable", "smartrecruiters", "sitemap_jsonld",
+})
+
 SILENT_AFTER_RUNS = 3  # passages sans nouvelle offre avant de signaler une source muette
 FAILURES_ALERT = 3     # échecs consécutifs avant alerte
 

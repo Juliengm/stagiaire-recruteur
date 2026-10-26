@@ -10,44 +10,48 @@ from veille_pipeline.connectors import CONNECTORS
 from veille_pipeline.db import get_engine
 from veille_pipeline.defs.assets.common import SOURCES_FILE, sources_partitions
 from veille_pipeline.http import PoliteHttpClient
-from veille_pipeline.sources_config import load_sources
+from veille_pipeline.sources_config import (
+    load_defaults,
+    load_sources,
+    source_from_row,
+    sync_yaml_to_rows,
+)
 
 
 @dg.asset(group_name="ingestion")
 def sources_registry(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
-    """Synchronise sources.yaml vers la table `sources` et les partitions dynamiques.
+    """Reprend sources.yaml dans la table `sources` et met à jour les partitions dynamiques.
 
-    Seules les sources activées dont le connecteur existe sont ingérées ; `kind: unknown`
-    et les connecteurs pas encore écrits sont ignorés.
+    La base est la source de vérité : le YAML crée les sources absentes et met à jour les
+    autres, sauf les champs modifiés depuis l'interface ; les sources ajoutées depuis
+    l'interface ne sont pas touchées. Seules les sources activées dont le connecteur existe
+    sont ingérées ; `kind: unknown` et les connecteurs pas encore écrits sont ignorés.
     """
-    sources = load_sources(SOURCES_FILE)
+    yaml_sources = load_sources(SOURCES_FILE, resolve=False)
+    defaults = load_defaults(SOURCES_FILE)
     active = []
     with Session(get_engine()) as session:
-        for src in sources:
-            stmt = insert(Source).values(
-                id=src["id"], name=src.get("name"), kind=src["kind"], config=src.get("config", {}),
-                region=src.get("region", []), priority=src.get("priority"),
-                schedule=src.get("schedule", "daily"), enabled=src.get("enabled", True),
-            )
-            session.execute(stmt.on_conflict_do_update(
-                index_elements=[Source.id],
-                set_={"name": stmt.excluded.name, "kind": stmt.excluded.kind,
-                      "config": stmt.excluded.config, "region": stmt.excluded.region,
-                      "priority": stmt.excluded.priority, "schedule": stmt.excluded.schedule,
-                      "enabled": stmt.excluded.enabled},
-            ))
-            connector = CONNECTORS.get(src["kind"])
+        rows = {s.id: s for s in session.scalars(select(Source))}
+        new_rows, removed = sync_yaml_to_rows(yaml_sources, rows)
+        session.add_all(new_rows)
+        session.flush()
+        for row in session.scalars(select(Source).where(Source.enabled.is_(True))):
+            connector = CONNECTORS.get(row.kind)
             ready = getattr(connector, "is_configured", lambda _: True)
-            if src.get("enabled", True) and connector and ready(src):
-                active.append(src["id"])
+            if connector and ready(source_from_row(row, defaults)):
+                active.append(row.id)
+        total = session.scalar(select(func.count()).select_from(Source))
         session.commit()
+    if removed:
+        context.log.warning(f"retirées de sources.yaml, désactivées : {', '.join(removed)}")
     existing = set(context.instance.get_dynamic_partitions(sources_partitions.name))
     to_add = [s for s in active if s not in existing]
     if to_add:
         context.instance.add_dynamic_partitions(sources_partitions.name, to_add)
     for stale in existing - set(active):
         context.instance.delete_dynamic_partition(sources_partitions.name, stale)
-    return dg.MaterializeResult(metadata={"sources": len(sources), "ingérables": len(active)})
+    return dg.MaterializeResult(metadata={"sources": total or 0, "ingérables": len(active),
+                                          "nouvelles": len(new_rows)})
 
 
 @dg.asset(
@@ -56,7 +60,8 @@ def sources_registry(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
 )
 def raw_offers(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
     source_id = context.partition_key
-    src = next(s for s in load_sources(SOURCES_FILE) if s["id"] == source_id)
+    with Session(get_engine()) as session:
+        src = source_from_row(session.get_one(Source, source_id), load_defaults(SOURCES_FILE))
     http = PoliteHttpClient(src["user_agent"], src.get("min_delay_seconds", 2))
     connector = CONNECTORS[src["kind"]]
     now = datetime.now(UTC)

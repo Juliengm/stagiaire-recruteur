@@ -41,6 +41,9 @@ class Source(Base):
     last_error: Mapped[str | None] = mapped_column(Text)
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
     consecutive_empty_runs: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    origin: Mapped[str] = mapped_column(Text, default="yaml", server_default="yaml")  # yaml | api
+    # champs modifiés depuis l'interface : sources_registry ne les reprend plus du YAML
+    user_fields: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list, server_default="{}")
 
 
 class RawOffer(Base):
