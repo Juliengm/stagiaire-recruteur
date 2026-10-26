@@ -264,12 +264,24 @@ sources:
 
   - id: expertise_france
     name: Expertise France
-    kind: gestmax
+    kind: html_list                          # Gestmax : liste rendue côté serveur, pas de robots.txt (404), pas de flux
     region: [mdg, remote]
     priority: 2
     verified: true
     config:
       url: https://expertise-france.gestmax.fr/search/index/lang/en_US
+      pagination: "{url}/page/{n}"           # 10 offres par page
+      max_pages: 15
+      date_formats: ["%Y/%m/%d %H:%M"]
+      selectors:
+        item: div.list-group-item
+        title: {css: h2.list-group-item-heading, regex: "^(.*?)\\s*\\(New window\\)$"}
+        url: a@href
+        country: img[src*="ico_pays"] + strong
+        city: img[src*="ico_ville"] + strong
+        contract: div.text-blue-light
+        deadline: {css: div.text-grey.listdiv-value, regex: "(\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2})"}
+      defaults: {organization: Expertise France, language: en}
 
   - id: afd
     name: AFD

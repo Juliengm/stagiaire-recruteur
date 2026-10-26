@@ -82,3 +82,15 @@ def test_sources_without_selectors_are_not_ingestible():
     connector = CONNECTORS["html_list"]
     assert connector.is_configured(SOURCES["ngojobsinafrica_mdg"])  # type: ignore[attr-defined]
     assert not connector.is_configured(SOURCES["helvetas_jobs"])  # type: ignore[attr-defined]
+
+
+def test_expertise_france_gestmax(fixtures):
+    src, raws = _parse(fixtures, "expertise_france", "expertise_france_gestmax.html")
+    assert len(raws) == 10 and len({r.external_id for r in raws}) == 10
+    offers = [normalize_html_list(r.payload, src) for r in raws]
+    first = offers[0]
+    assert first.title == "Contracts and Procurement Assistant (M/W)"
+    assert first.organization == "Expertise France"
+    assert first.country == "Nigeria" and first.city == "Abuja"
+    assert str(first.deadline) == "2026-11-06" and first.contract_type == "cdd"
+    assert all(o.title and o.deadline and o.country for o in offers)

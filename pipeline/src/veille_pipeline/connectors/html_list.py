@@ -12,7 +12,8 @@ from veille_pipeline.connectors.base import SourceConfig
 from veille_pipeline.http import PoliteHttpClient
 from veille_pipeline.models import RawOffer
 
-FIELDS = ("title", "url", "organization", "location", "contract", "posted", "deadline", "id")
+FIELDS = ("title", "url", "organization", "location", "country", "city", "contract", "posted",
+          "deadline", "id")
 
 
 def _extract(node: LexborNode, spec: str | dict[str, str] | None) -> str | None:

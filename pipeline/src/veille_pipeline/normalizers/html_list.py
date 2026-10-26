@@ -33,13 +33,15 @@ def normalize_html_list(payload: dict, source: dict) -> Offer:
     defaults = config.get("defaults", {})
     formats = config.get("date_formats", DEFAULT_DATE_FORMATS)
     title = (payload.get("title") or "").strip()
-    location = payload.get("location")
+    city_text, country_text = payload.get("city"), payload.get("country")
+    location = payload.get("location") or ", ".join(p for p in (city_text, country_text) if p) or None
     text = f"{title} {location or ''} {payload.get('contract') or ''}"
     low = text.lower()
-    country = defaults.get("country")
+    country = (country_text or "").title() or defaults.get("country")
     if "madagascar" in low or "antananarivo" in low:
         country = "Madagascar"
-    city = next((name for key, name in _PLACES.items() if key in f"{low} "), None)
+    city = (city_text or "").title() or next(
+        (name for key, name in _PLACES.items() if key in f"{low} "), None)
     return Offer(
         canonical_url=canonicalize_url(payload.get("url")),
         title=title,
