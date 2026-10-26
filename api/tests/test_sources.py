@@ -38,3 +38,4 @@ def test_create_source(client: TestClient, session: Session) -> None:
     assert client.post("/sources", json={**body, "id": "Pas Bon"}).status_code == 422
     assert client.post("/sources", json={**body, "id": "y2", "region": ["paris"]}).status_code == 422
     assert {s["id"] for s in client.get("/sources").json()} == {"reliefweb_mdg", "ong_x"}
+    assert "html_list" in client.get("/sources/kinds").json()

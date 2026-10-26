@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from db.models import Offer, OfferScore, Source, UserStatus
 from fastapi.testclient import TestClient
@@ -53,6 +53,16 @@ def test_filters(client: TestClient, session: Session) -> None:
     assert got(q="évaluation") == [ids["mdg"]]  # description
     assert got(q="agence") == [ids["remote"]]   # organisation, sans casse
     assert client.get("/offers", params={"status": "nope"}).status_code == 422
+
+
+def test_expired_offers_hidden_by_default(client: TestClient, session: Session) -> None:
+    today = date.today()
+    old = _offer(session, "Expirée", 0.9, deadline=today - timedelta(days=1))
+    last_day = _offer(session, "Dernier jour", 0.5, deadline=today)
+    session.commit()
+    assert [o["id"] for o in client.get("/offers").json()] == [last_day.id]
+    shown = client.get("/offers", params={"include_expired": True}).json()
+    assert [o["id"] for o in shown] == [old.id, last_day.id]
 
 
 def test_set_status_upserts_and_keeps_note(client: TestClient, session: Session) -> None:

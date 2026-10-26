@@ -45,6 +45,12 @@ services:
     ports: ["127.0.0.1:8000:8000"]
     depends_on: {migrate: {condition: service_completed_successfully}}
 
+  web:
+    build: {context: ., dockerfile: web/Dockerfile}
+    # 127.0.0.1 seulement : pas d'exposition publique avant l'authentification (étape 5)
+    ports: ["127.0.0.1:8080:80"]
+    depends_on: [api]
+
 volumes:
   hf_cache:
   pgdata:

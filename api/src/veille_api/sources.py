@@ -64,6 +64,12 @@ class SourceOut(BaseModel):
     consecutive_empty_runs: int
 
 
+@router.get("/sources/kinds")
+def connector_kinds() -> list[str]:
+    """Types de connecteurs écrits, seuls acceptés pour une nouvelle source."""
+    return sorted(CONNECTOR_KINDS)
+
+
 @router.get("/sources")
 def list_sources(session: Annotated[Session, Depends(get_session)]) -> list[SourceOut]:
     rows = session.scalars(select(Source).order_by(Source.priority.nulls_last(), Source.id))

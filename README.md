@@ -81,6 +81,12 @@ Tests de l'API : ils utilisent la base `veille_test` du Postgres de Docker, publ
 cd api && uv run pytest -q && uv run ruff check . && uv run mypy src tests
 ```
 
+Interface (Vue 3, `web/`) : trois vues, **Offres** (tri au clavier : `j`/`k`, `o` ouvrir, `i` `a` `e` `g` `r` `x` `n`
+pour le statut, `c` créer une candidature), **Candidatures** (tableau éditable, relances en retard en rouge,
+import du fichier Excel) et **Sources** (état, activation, « lancer maintenant » qui déclenche le job Dagster par
+son API GraphQL). En développement : `cd web && npm install && npm run dev` (l'API de Docker est jointe par le
+proxy de Vite).
+
 Les CV, les données personnelles et les e-mails réels ne sont pas dans ce dépôt.
 
 ## Contacter Julien

@@ -53,10 +53,12 @@ def list_offers(
     region: Region | None = None,
     min_score: float | None = None,
     q: str | None = None,
+    include_expired: bool = False,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[OfferOut]:
-    """Offres hors doublons, les mieux notées d'abord ; sans statut enregistré = « new »."""
+    """Offres hors doublons, les mieux notées d'abord ; sans statut enregistré = « new ».
+    Les offres dont la date limite est passée sont masquées sauf `include_expired=true`."""
     region_col = zone_sql(Offer.country, Offer.city, Offer.remote).label("region")
     status_col = func.coalesce(UserStatus.status, "new").label("status")
     stmt = (
@@ -65,6 +67,8 @@ def list_offers(
         .outerjoin(UserStatus, UserStatus.offer_id == Offer.id)
         .where(Offer.duplicate_of.is_(None))
     )
+    if not include_expired:
+        stmt = stmt.where(or_(Offer.deadline.is_(None), Offer.deadline >= date.today()))
     if status:
         stmt = stmt.where(status_col == status)
     if region:
