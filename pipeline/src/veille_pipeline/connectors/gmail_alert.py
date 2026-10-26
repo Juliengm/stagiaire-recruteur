@@ -51,6 +51,12 @@ class GmailAlertConnector:
                     ))
         return offers
 
+    def awaits_parser(self, msg: EmailMessage, source: SourceConfig) -> bool:
+        """Expéditeur prévu dans sources.yaml mais parseur pas encore écrit : message à relire plus tard."""
+        sender = sender_address(msg)
+        return any(rule["from_contains"].lower() in sender and name not in PARSERS
+                   for name, rule in source["config"].get("parsers", {}).items())
+
     def fetch(
         self, source: SourceConfig, since: datetime | None, http: PoliteHttpClient
     ) -> Iterable[RawOffer]:
@@ -72,7 +78,8 @@ class GmailAlertConnector:
                 msg = message_from_bytes(base64.urlsafe_b64decode(raw), policy=policy.default)
                 assert isinstance(msg, EmailMessage)
                 offers += self.parse_message(msg, source, now)
-                self._to_mark.append(ref["id"])  # même sans offre reconnue : ne pas relire sans fin
+                if not self.awaits_parser(msg, source):
+                    self._to_mark.append(ref["id"])  # même sans offre reconnue : ne pas relire sans fin
             token = page.get("nextPageToken")
             if not token:
                 return offers

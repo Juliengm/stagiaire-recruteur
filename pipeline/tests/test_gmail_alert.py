@@ -15,7 +15,8 @@ SOURCE = {
         "oauth_token_file": "fake", "label": "alertes-emploi", "processed_label": "traité",
         "parsers": {"linkedin": {"from_contains": "linkedin.com"},
                     "developmentaid": {"from_contains": "developmentaid.info"},
-                    "unvacancies": {"from_contains": "unvacancies.org"}},
+                    "unvacancies": {"from_contains": "unvacancies.org"},
+                    "impactpool": {"from_contains": "impactpool.org"}},  # prévu, parseur pas encore écrit
     },
 }
 
@@ -176,3 +177,18 @@ def test_unvacancies_deadline_rolls_over_to_next_year():
 def test_connector_routes_unvacancies_by_sender(fixtures):
     offers = GmailAlertConnector().parse_message(_load(fixtures, "unvacancies_alert.anon.eml"), SOURCE, NOW)
     assert len(offers) == 3 and all(o.external_id.startswith("unvacancies:") for o in offers)
+
+
+def test_messages_awaiting_a_parser_are_not_marked(fixtures):
+    from email.message import EmailMessage
+    fake = FakeGmail(fixtures)
+    for msg_id, sender in (("m3", "Impactpool <alerts@impactpool.org>"), ("m4", "Newsletter <news@example.org>")):
+        msg = EmailMessage()
+        msg["From"] = sender
+        msg.set_content("x")
+        fake.raw[msg_id] = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    connector = GmailAlertConnector(service_factory=lambda _f: fake)
+    list(connector.fetch(SOURCE, None, http=None))  # type: ignore[arg-type]
+    connector.finalize(SOURCE)
+    # Impactpool sera relu une fois son parseur écrit ; l'expéditeur inconnu est marqué pour ne pas boucler
+    assert fake.modified[0]["ids"] == ["m1", "m2", "m4"]
