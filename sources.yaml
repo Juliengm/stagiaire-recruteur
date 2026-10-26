@@ -397,10 +397,11 @@ sources:
       processed_label: traité
       oauth_token_file: ${GMAIL_TOKEN_FILE}   # jeton OAuth (scope de lecture + modification des libellés), hors dépôt
       parsers:                                # expéditeur d'origine → parseur (adresses à relever sur les vrais e-mails)
-        linkedin: {from_contains: linkedin.com}
+        linkedin: {from_contains: linkedin.com}           # jobalerts-noreply@ (alertes) et jobs-noreply@ (offres similaires)
         unjobs: {from_contains: unjobs.org}
         impactpool: {from_contains: impactpool.org}
-        developmentaid: {from_contains: developmentaid.info}
+        developmentaid: {from_contains: developmentaid.info} # info@ ; envoie aussi des webinaires (0 offre lue)
         welcometothejungle: {from_contains: welcometothejungle}
         apec: {from_contains: apec.fr}
         untalent: {from_contains: untalent.org}
+        unvacancies: {from_contains: unvacancies.org}     # alerts@unvacancies.org (constaté le 21/10/2026)

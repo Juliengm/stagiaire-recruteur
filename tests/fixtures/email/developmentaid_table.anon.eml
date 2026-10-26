@@ -1,0 +1,773 @@
+From: DevelopmentAid <info@developmentaid.info>
+To: alertes@example.org
+Subject: Your personalised Job Alert: 4 opportunities posted
+Date: Fri, 23 Oct 2026 03:49:35 +0200
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+
+               =20
+<!DOCTYPE html>
+<html lang=3D"en-US">
+    <head>
+        <meta charset=3D"UTF-8">
+        <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3DUTF=
+-8" />
+        <title>International Development Information</title>
+        <style type=3D"text/css">
+                        body{
+                margin: 0;
+                padding: 0;
+            }
+           =20
+            img{
+                border:0 none;
+                height: auto;
+                line-height: 100%;
+                outline: none;
+                text-decoration: none;
+            }
+           =20
+            a img{
+                border: 0 none;
+            }
+           =20
+                        .imageFix{
+                display: block;
+            }
+           =20
+                        table, td{
+                border-collapse: collapse;
+            }
+           =20
+            td.border-bottom {
+                position: relative;
+            }
+
+            td.border-bottom::after {
+                content: '';
+                height: 1px;
+                width: 570px;
+                position: absolute;
+                left: 15px;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.05);
+            }
+
+                        #bodyTable,
+            .bodyTable {
+                height: 100% !important;
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+            }
+                       =20
+
+                        @media only screen and (max-width:480px){
+               =20
+            }
+           =20
+                                                        </style>
+    </head>
+    <body style=3D"background-color: #f9f9f9;">
+                <table id=3D"bodyTable"
+               class=3D"bodyTable"
+               width=3D"100%"
+               height=3D"100%"
+               border=3D"0"
+               cellpadding=3D"0"
+               cellspacing=3D"0"
+               bgcolor=3D"#f9f9f9"
+               style=3D"margin: 0; padding: 0;height: 100%!important; margin:=
+ 0; padding: 0; width: 100%!important;border-collapse: collapse;background-co=
+lor: #f9f9f9; width: 100%; height: 100%; border: 0 none;">
+            <tr>
+                <td align=3D"center"
+                    valign=3D"top"
+                    style=3D"border-collapse: collapse;">
+                                        <table id=3D"emailContainer"
+                           class=3D"emailContainer"
+                           width=3D"600"
+                           border=3D"0"
+                           cellpadding=3D"0"
+                           cellspacing=3D"0"
+                           bgcolor=3D"#f0f0f0"
+                           style=3D"border-collapse: collapse;background-colo=
+r: #f9f9f9;font-family: Arial, Helvetica, sans-serif; width: 600px; border: 0=
+ none;">
+                        <tr>
+                            <td width=3D"100%"
+                                align=3D"center"
+                                valign=3D"top"
+                                style=3D"border-collapse: collapse; width: 10=
+0%;">
+
+                                                                             =
+                       <table width=3D"100%"
+                                       bgcolor=3D'#f0f0f0'
+                                       style=3D"border-collapse: collapse;bac=
+kground-color: #f9f9f9; width: 100%;">
+                                        <tr>
+                                            <td width=3D"100%" style=3D"borde=
+r-collapse: collapse; width: 100%; padding-top: 24px; padding-bottom: 18px; b=
+order-bottom: 1px solid #e1e2e2;">
+                                                <table width=3D"100%" style=
+=3D"border-collapse: collapse; width: 100%;">
+                                                    <tr>
+                                                                             =
+                                   <td width=3D"10%"
+                                                            style=3D"border-c=
+ollapse: collapse; width: 10%;">
+                                                            <img width=3D"50"
+                                                                 height=3D"50"
+                                                                 class=3D'log=
+oImage'
+                                                                 src=3D'cid:A=
+NON@symfony'
+                                                                 alt=3D'Devel=
+opmentAid header logo'
+                                                                 style=3D"bor=
+der: 0 none; height: auto; line-height: 100%; outline: none; text-decoration:=
+ none;">
+                                                        </td>
+                                                                             =
+                                                                             =
+              <td width=3D"90%"                                              =
+               style=3D"border-collapse: collapse;font-family: Arial, Helveti=
+ca, sans-serif; width: 90%; color: #181818; font-weight: 600; font-size: 22px=
+;"
+                                                            class=3D'emailTit=
+le'>
+                                                            Job Alert        =
+                                                </td>
+                                                                             =
+                               </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                               =20
+                                                                <table width=
+=3D"100%"
+                                       bgcolor=3D"#f0f0f0"
+                                       style=3D"border-collapse: collapse;bac=
+kground-color: #f9f9f9; width: 100%;">
+                                    <tr>
+                                        <td width=3D"100%"
+                                            style=3D"border-collapse: collaps=
+e; width: 100%; padding-top: 10px;">
+                                                <table style=3D"padding-top: =
+20px;  padding-bottom: 15px;   width: 600px; line-height: 1.57; font-size: 16=
+px;"><tr><td style=3D"line-height: 1.57; font-size: 16px; width: 600px;"><tab=
+le><tr><td style=3D" font-size:14px; padding-top: 10px; padding-bottom: 15px;=
+">
+                                Dear Pr=C3=A9nom Pr=C3=A9nom,
+                            </td></tr></table><table><tr><td style=3D"width: =
+100%; font-size:14px; padding-bottom: 15px; line-height: 1.57;">
+                                4 opportunities that meet your job alert sett=
+ings have been posted.
+                                <a target=3D"_blank"
+                                   href=3D"https://www.developmentaid.org/job=
+s/search"
+                                   style=3D"color: #489dd1; text-decoration: =
+none;">
+                                    Click here
+                                </a> to view the complete list (note that ale=
+rts are limited to display a maximum
+                                of 150 opportunities).
+                            </td></tr></table><table style=3D"width: 100%; li=
+ne-height: 1.57; font-size: 16px; "><tr><td style=3D"width: 100%; line-height=
+: 1.57; font-size: 14px;">
+                                To customise your Job Alert by location, sect=
+or, job duration or frequency,
+                                <a target=3D"_blank"
+                                   href=3D"https://www.developmentaid.org/exp=
+ertprofile/alerts/job"
+                                   style=3D"color: #489dd1; text-decoration: =
+none;">
+                                    click here
+                                </a>.
+                            </td></tr></table><table><tr><td style=3D" font-s=
+ize:14px; padding-top: 15px; padding-bottom: 15px;">
+                                Please contact our support team should you ne=
+ed any assistance with the settings of your
+                                account or alerts.
+                            </td></tr></table><table><tr><td style=3D"width: =
+100%; font-size:14px; padding-bottom:  15px ;">
+                                DevelopmentAid Career Center
+                            </td></tr></table></td></tr></table>             =
+                           </td>
+                                    </tr>
+                                </table>
+
+                                                                             =
+                       <table width=3D"100%"
+                                           bgcolor=3D"#f0f0f0"
+                                           style=3D"border-collapse: collapse=
+;background-color: #f9f9f9; width: 100%; border-radius: 4px;">
+                                        <tr>
+                                            <td width=3D"100%"
+                                                style=3D"border-collapse: col=
+lapse; width: 100%; padding-bottom: 24px;">
+                                                <a href=3D"https://www.develo=
+pmentaid.org/link/VideoGuideNewsletter"
+                                                   target=3D"_blank">
+                                                    <img width=3D"600"
+                                                         src=3D"cid:ANON@symf=
+ony"
+                                                         alt=3D"DevelopmentAi=
+d banner"
+                                                         style=3D"width: 600p=
+x; border-radius: 4px;">
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                               =20
+                                                                <table width=
+=3D"100%"
+                                       bgcolor=3D"#f0f0f0"
+                                       style=3D"border-collapse: collapse;bac=
+kground-color: #f9f9f9; width: 100%;">
+                                    <tr>
+                                        <td width=3D"100%"
+                                            style=3D"border-collapse: collaps=
+e; width: 100%; padding-bottom: 24px;">
+                                                <table style=3D"border-bottom=
+: 1px solid #e1e2e2;border-collapse: separate;
+               font-size: 14px;
+               width: 600px;
+               color: #0c0c0c;
+               border-spacing: 0;
+               empty-cells: hide;
+               table-layout: auto;"><tr><td style=3D"padding-top: 20px; paddi=
+ng-bottom:20px; "><table><tr><td style=3D"width: 5%;"><img src=3D"cid:ANON@sy=
+mfony"
+                                     style=3D"display: inline;" alt=3D"M"/></=
+td><td style=3D"width: 60%; line-height: 1.43; padding-left:16px; padding-rig=
+ht: 90px; color:#181818;"><table><tr><td style=3D" font-size:14px; padding-bo=
+ttom: 1px;">
+                                            Get access to 4093 Members-only j=
+obs,
+                                        </td></tr><tr><td style=3D"font-size:=
+14px;">
+                                            gain higher profile visibility an=
+d more
+                                        </td></tr></table></td><td style=3D"w=
+idth: 26%;"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" WIDTH=3D"=
+100%"
+                                       style=3D"background-color: #3b9dd4; bo=
+rder-radius: 5px;"><tr><td align=3D"center" valign=3D"middle"
+                                            style=3D"color: #FFFFFF; font-siz=
+e: 16px; font-weight: bold; letter-spacing: -.5px; line-height: 90%; padding-=
+top: 11px; padding-right: 10px; padding-bottom: 11px; padding-left: 9px;"><a =
+href=3D"https://www.developmentaid.org/experts/membership" target=3D"_blank"
+                                               style=3D"color: #FFFFFF; text-=
+decoration: none;">
+                                                Become a member
+                                            </a></td></tr></table></td></tr><=
+/table></td></tr></table><table style=3D"width: 100%;"><tr><td style=3D"borde=
+r-bottom: 1px solid #e1e2e2;border-collapse: collapse; padding-top: 25px; pad=
+ding-bottom: 10px; font-size: 14px; color:#878787; border-spacing: 0; empty-c=
+ells: hide; table-layout: auto; width: 100%;width: 100%; vertical-align: cent=
+er; font-size:14px; color: #7D7C7D;  padding-top:28px; "><table style=3D"widt=
+h: 100%;"><tr><td style=3D"width:30%;"><table><tr><td><span style=3D"font-wei=
+ght: bold; color: #3A9DD3; font-size: 16px;">=E2=9C=93</span></td><td style=
+=3D"vertical-align: center; font-size:14px; color: #7D7C7D;">
+                                            &thinsp; - featured organisation
+                                        </td></tr></table></td><td style=3D"p=
+adding-left: 30px;"><table><tr><td><span style=3D"font-weight: bold; color: #=
+7BB342; font-size: 16px;">M</span></td><td style=3D"vertical-align: center; f=
+ont-size:14px; color: #7D7C7D;">
+                                                &thinsp;- Members-only jobs
+                                            </td></tr></table></td></tr></tab=
+le></td></tr></table><table style=3D"width: 100%;"><tr><td style=3D"padding-b=
+ottom: 30px;"><table style=3D"width: 100%;"><tr><td style=3D"padding-top: 16p=
+x; padding-bottom: 10px;"><table style=3D"width:100%"><tr><td style=3D"width:=
+100%; background-color:#D2D0D2; padding-top:18px; padding-bottom:18px; paddin=
+g-left:25px; padding-right: 25px; font-size:12px; color:#181818;"><table styl=
+e=3D"width:100%;"><tr><td style=3D"width:32.5%; font-size: 12px;">
+                                Title & Job type
+                            </td><td style=3D"width:33.83%; font-size: 12px;">
+                                Company
+                            </td><td style=3D"width:16.5%; font-size: 12px;">
+                                Location
+                            </td><td style=3D"width:8.83%; font-size: 12px;">
+                                Deadline
+                            </td></tr></table></td></tr><tr><td style=3D"widt=
+h: 100%; padding-bottom: 5px;  padding-top:10px; "><table style=3D"width:100%=
+;"><tr><td style=3D"background-color: #ffffff; color: #181818; font-size: 12p=
+x; padding-left: 25px; padding-right:9px; padding-top:15px; padding-bottom: 1=
+5px; width: 100%; empty-cells: show; margin: 0; box-shadow: 0px 2px 20px 0 rg=
+ba(0, 0, 0, 0.05);border-collapse: separate;border-spacing: 0 0px; border-rad=
+ius: 4px; vertical-align:top; text-align:left; line-height: normal;width: 100=
+%;   padding-left: 7px; "><table style=3D"width: 100%;"><tr><td style=3D"widt=
+h:  35.5% ; padding-right: 12px; text-align: left;"><table style=3D"width:100=
+%;"><tr><td style=3D"padding-right:6px; vertical-align: top;"><span style=3D"=
+font-weight: bold; color: #7BB342; font-size: 14px;">M</span></td><td style=
+=3D"width:100%; vertical-align: top; font-size: 12px;"><a href=3D"https://www=
+.developmentaid.org/jobs/view/1816531"
+                                                                   target=3D"=
+_blank"
+                                                                   style=3D"c=
+olor: #0077cc; text-decoration: none;">
+                                                                             =
+                                                               Charg=C3=A9(e)=
+ de Projet Educa...
+                                                                             =
+                                                       </a></td></tr><tr><td =
+  colspan=3D"2"  style=3D"width:100%; font-size: 12px; vertical-align: top; c=
+olor:#8C8C8C; padding-top:11px;  padding-left: 18px; ">
+                                                                Contract, 12 =
+months +
+                                                            </td></tr></table=
+></td><td style=3D"width:33.83%; vertical-align: top; font-size: 12px; text-a=
+lign: left; padding-right: 8px;  color: #8B8B8B;">
+                                                                             =
+                               Multilateral organization
+                                                                             =
+                       </td><td style=3D"width:16.5%; vertical-align: top; pa=
+dding-right:20px; text-align:left; font-size: 12px;">
+                                                                             =
+                               Africa
+                                                                             =
+                       </td><td style=3D"width:8.83%; font-size: 12px; vertic=
+al-align: top; white-space: nowrap; text-align: left; color:
+                                                                             =
+                           #181818
+                                            ;">
+                                                    06 Nov, 2026
+                                                </td></tr></table></td></tr><=
+/table></td></tr><tr><td style=3D"width: 100%; padding-bottom: 5px; "><table =
+style=3D"width:100%;"><tr><td style=3D"background-color: #ffffff; color: #181=
+818; font-size: 12px; padding-left: 25px; padding-right:9px; padding-top:15px=
+; padding-bottom: 15px; width: 100%; empty-cells: show; margin: 0; box-shadow=
+: 0px 2px 20px 0 rgba(0, 0, 0, 0.05);border-collapse: separate;border-spacing=
+: 0 0px; border-radius: 4px; vertical-align:top; text-align:left; line-height=
+: normal;width: 100%;   padding-left: 7px; "><table style=3D"width: 100%;"><t=
+r><td style=3D"width:  35.5% ; padding-right: 12px; text-align: left;"><table=
+ style=3D"width:100%;"><tr><td style=3D"padding-right:6px; vertical-align: to=
+p;"><span style=3D"font-weight: bold; color: #7BB342; font-size: 14px;">M</sp=
+an></td><td style=3D"width:100%; vertical-align: top; font-size: 12px;"><a hr=
+ef=3D"https://www.developmentaid.org/jobs/view/1816520"
+                                                                   target=3D"=
+_blank"
+                                                                   style=3D"c=
+olor: #0077cc; text-decoration: none;">
+                                                                             =
+                                                               Senior Consult=
+ant - Demog...
+                                                                             =
+                                                       </a></td></tr><tr><td =
+  colspan=3D"2"  style=3D"width:100%; font-size: 12px; vertical-align: top; c=
+olor:#8C8C8C; padding-top:11px;  padding-left: 18px; ">
+                                                                Contract, 12 =
+months +
+                                                            </td></tr></table=
+></td><td style=3D"width:33.83%; vertical-align: top; font-size: 12px; text-a=
+lign: left; padding-right: 8px;  color: #8B8B8B;">
+                                                                             =
+                               Consulting organization
+                                                                             =
+                       </td><td style=3D"width:16.5%; vertical-align: top; pa=
+dding-right:20px; text-align:left; font-size: 12px;">
+                                                                             =
+                               Africa
+                                                                             =
+                       </td><td style=3D"width:8.83%; font-size: 12px; vertic=
+al-align: top; white-space: nowrap; text-align: left; color:
+                                                                             =
+                           #181818
+                                            ;">
+                                                    Open until filled
+                                                </td></tr></table></td></tr><=
+/table></td></tr><tr><td style=3D"width: 100%; padding-bottom: 5px; "><table =
+style=3D"width:100%;"><tr><td style=3D"background-color: #ffffff; color: #181=
+818; font-size: 12px; padding-left: 25px; padding-right:9px; padding-top:15px=
+; padding-bottom: 15px; width: 100%; empty-cells: show; margin: 0; box-shadow=
+: 0px 2px 20px 0 rgba(0, 0, 0, 0.05);border-collapse: separate;border-spacing=
+: 0 0px; border-radius: 4px; vertical-align:top; text-align:left; line-height=
+: normal;width: 100%;   padding-left: 7px; "><table style=3D"width: 100%;"><t=
+r><td style=3D"width:  35.5% ; padding-right: 12px; text-align: left;"><table=
+ style=3D"width:100%;"><tr><td style=3D"padding-right:6px; vertical-align: to=
+p;"><span style=3D"font-weight: bold; color: #7BB342; font-size: 14px;">M</sp=
+an></td><td style=3D"width:100%; vertical-align: top; font-size: 12px;"><a hr=
+ef=3D"https://www.developmentaid.org/jobs/view/1816514"
+                                                                   target=3D"=
+_blank"
+                                                                   style=3D"c=
+olor: #0077cc; text-decoration: none;">
+                                                                             =
+                                                               Mid-Level Cons=
+ultant - Re...
+                                                                             =
+                                                       </a></td></tr><tr><td =
+  colspan=3D"2"  style=3D"width:100%; font-size: 12px; vertical-align: top; c=
+olor:#8C8C8C; padding-top:11px;  padding-left: 18px; ">
+                                                                Contract, 12 =
+months +
+                                                            </td></tr></table=
+></td><td style=3D"width:33.83%; vertical-align: top; font-size: 12px; text-a=
+lign: left; padding-right: 8px;  color: #8B8B8B;">
+                                                                             =
+                               Consulting organization
+                                                                             =
+                       </td><td style=3D"width:16.5%; vertical-align: top; pa=
+dding-right:20px; text-align:left; font-size: 12px;">
+                                                                             =
+                               Africa
+                                                                             =
+                       </td><td style=3D"width:8.83%; font-size: 12px; vertic=
+al-align: top; white-space: nowrap; text-align: left; color:
+                                                                             =
+                           #181818
+                                            ;">
+                                                    Open until filled
+                                                </td></tr></table></td></tr><=
+/table></td></tr><tr><td style=3D"width: 100%; padding-bottom: 5px; "><table =
+style=3D"width:100%;"><tr><td style=3D"background-color: #ffffff; color: #181=
+818; font-size: 12px; padding-left: 25px; padding-right:9px; padding-top:15px=
+; padding-bottom: 15px; width: 100%; empty-cells: show; margin: 0; box-shadow=
+: 0px 2px 20px 0 rgba(0, 0, 0, 0.05);border-collapse: separate;border-spacing=
+: 0 0px; border-radius: 4px; vertical-align:top; text-align:left; line-height=
+: normal;width: 100%;   padding-left: 7px; "><table style=3D"width: 100%;"><t=
+r><td style=3D"width:  35.5% ; padding-right: 12px; text-align: left;"><table=
+ style=3D"width:100%;"><tr><td style=3D"padding-right:6px; vertical-align: to=
+p;"><span style=3D"font-weight: bold; color: #7BB342; font-size: 14px;">M</sp=
+an></td><td style=3D"width:100%; vertical-align: top; font-size: 12px;"><a hr=
+ef=3D"https://www.developmentaid.org/jobs/view/1816316"
+                                                                   target=3D"=
+_blank"
+                                                                   style=3D"c=
+olor: #0077cc; text-decoration: none;">
+                                                                             =
+                                                               Expert(e) en G=
+estion Dura...
+                                                                             =
+                                                       </a></td></tr><tr><td =
+  colspan=3D"2"  style=3D"width:100%; font-size: 12px; vertical-align: top; c=
+olor:#8C8C8C; padding-top:11px;  padding-left: 18px; ">
+                                                                Contract, 12 =
+months +
+                                                            </td></tr></table=
+></td><td style=3D"width:33.83%; vertical-align: top; font-size: 12px; text-a=
+lign: left; padding-right: 8px;  color: #8B8B8B;">
+                                                                             =
+                               Multilateral organization
+                                                                             =
+                       </td><td style=3D"width:16.5%; vertical-align: top; pa=
+dding-right:20px; text-align:left; font-size: 12px;">
+                                                                             =
+                               Africa
+                                                                             =
+                       </td><td style=3D"width:8.83%; font-size: 12px; vertic=
+al-align: top; white-space: nowrap; text-align: left; color:
+                                                                             =
+                           #181818
+                                            ;">
+                                                    05 Nov, 2026
+                                                </td></tr></table></td></tr><=
+/table></td></tr></table></td></tr></table></td></tr></table><table WIDTH=3D"=
+600"><tr><td style=3D"padding-top: 0; padding-bottom: 5px; padding-left: 240p=
+x; padding-right: 240px;"><table border=3D"0" cellspacing=3D"0" height=3D"36"
+                           style=3D"background-color: #3b9dd4; border-radius:=
+ 5px;"><tr><td align=3D"center" valign=3D"middle"
+                                style=3D"color: #FFFFFF; font-size: 16px; fon=
+t-weight: bold;
+                                letter-spacing: -.5px; line-height: 95%; padd=
+ing-top: 10px;
+                                 padding-right: 10px; padding-bottom: 10px; p=
+adding-left: 10px;"><a target=3D"_blank"
+                                   href=3D"https://www.developmentaid.org/job=
+s/search"
+                                   style=3D"color: #ffffff; text-decoration: =
+none;">
+                                    View all jobs
+                                </a></td></tr></table></td></tr></table>     =
+                                   </td>
+                                    </tr>
+                                </table>
+
+                                                                             =
+                   <table width=3D"100%"
+                                       bgcolor=3D"#f9f9f9"
+                                       style=3D"border-collapse: collapse;bac=
+kground-color: #f9f9f9; width:100%;">
+                                    <tr>
+                                        <td width=3D"100%"
+                                            style=3D"border-collapse: collaps=
+e; width:100%; padding-top: 27px; border-top: 1px solid #e1e2e2;">
+                                            <table width=3D"100%"
+                                                   style=3D"border-collapse: =
+collapse;background-color: #f9f9f9; width:100%;">
+                                                <tr>
+                                                    <td width=3D"100%"
+                                                        align=3D"center"
+                                                        style=3D"border-colla=
+pse: collapse; width:100%; padding-bottom: 24px;">
+                                                        <a href=3D"">
+                                                            <img width=3D"218"
+                                                                 src=3D"cid:A=
+NON@symfony"
+                                                                 alt=3D"Devel=
+opmentAid footer logo"
+                                                                 style=3D"wid=
+th: 218px;">
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table width=3D"100%"
+                                                   style=3D"border-collapse: =
+collapse;background-color: #f9f9f9; width:100%;">
+                                                <tr>
+                                                    <td width=3D"100%"
+                                                        align=3D"center"
+                                                        style=3D"border-colla=
+pse: collapse; width:100%; padding-bottom: 24px;">
+                                                        <table width=3D"75%" =
+style=3D"border-collapse: collapse; width: 75%;">
+                                                            <tr>
+                                                                <td width=3D"=
+100%"
+                                                                    align=3D"=
+center"
+                                                                    style=3D"=
+border-collapse: collapse;font-family: Arial, Helvetica, sans-serif;
+                                                                           wi=
+dth: 100%;
+                                                                           fo=
+nt-size: 12px;
+                                                                           li=
+ne-height: 18px;
+                                                                           co=
+lor: #adadad">
+                                                                    Developme=
+ntAid is a leading, innovative membership organization providing comprehensive
+                                                                    informati=
+on services for the international developmental sector.
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table width=3D"100%"
+                                                   style=3D"border-collapse: =
+collapse;background-color: #f9f9f9; width:100%;">
+                                                <tr>
+                                                    <td width=3D"100%"
+                                                        align=3D"center"
+                                                        style=3D"border-colla=
+pse: collapse;font-family: Arial, Helvetica, sans-serif;
+                                                               width:100%;
+                                                               text-align: ce=
+nter;
+                                                               font-size: 16p=
+x;
+                                                               color: #181818;
+                                                               padding-bottom=
+: 24px;">
+                                                        Follow us on
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table width=3D"100%"
+                                                   style=3D"border-collapse: =
+collapse;background-color: #f9f9f9; width:100%;">
+                                                <tr>
+                                                    <td width=3D"100%" style=
+=3D"border-collapse: collapse; width: 100%; padding-bottom: 24px;">
+                                                        <table align=3D"cente=
+r" width=3D"54%" style=3D"border-collapse: collapse; width: 54%;">
+                                                            <tr>
+                                                                <td align=3D"=
+right"
+                                                                    style=3D"=
+border-collapse: collapse;">
+                                                                    <a href=
+=3D"https://www.linkedin.com/company/developmentaid"
+                                                                       target=
+=3D"_blank">
+                                                                        <img =
+width=3D"50"
+                                                                             =
+height=3D"50"
+                                                                             =
+src=3D"cid:ANON@symfony"
+                                                                             =
+alt=3D"DevelopmentAid Linkedin icon"
+                                                                             =
+style=3D"width: 50px; height: 50px;">
+                                                                    </a>
+                                                                </td>
+                                                                <td align=3D"=
+center"
+                                                                    style=3D"=
+border-collapse: collapse;">
+                                                                    <a href=
+=3D"https://x.com/devaidjobs"
+                                                                       target=
+=3D"_blank">
+                                                                        <img =
+width=3D"50"
+                                                                             =
+height=3D"50"
+                                                                             =
+src=3D"cid:ANON@symfony"
+                                                                             =
+alt=3D"DevelopmentAid X icon"
+                                                                             =
+style=3D"width: 50px; height: 50px;">
+                                                                    </a>
+                                                                </td>
+                                                                <td align=3D"=
+left"
+                                                                    style=3D"=
+border-collapse: collapse;">
+                                                                    <a href=
+=3D"https://www.facebook.com/developmentaid.org"
+                                                                       target=
+=3D"_blank">
+                                                                        <img =
+width=3D"50"
+                                                                             =
+height=3D"50"
+                                                                             =
+src=3D"cid:ANON@symfony"
+                                                                             =
+alt=3D"DevelopmentAid Facebook icon"
+                                                                             =
+style=3D"width: 50px; height: 50px;">
+                                                                    </a>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table width=3D"100%"
+                                                   style=3D"border-collapse: =
+collapse;background-color: #f9f9f9; width: 100%;">
+                                                <tr>
+                                                    <td width=3D"100%" style=
+=3D"border-collapse: collapse; width: 100%; padding-bottom: 24px;">
+                                                        <table width=3D"100%"=
+ style=3D"border-collapse: collapse; width: 100%;">
+                                                            <tr>
+                                                                <td style=3D"=
+border-collapse: collapse;font-family: Arial, Helvetica, sans-serif; font-siz=
+e: 14px; line-height: 30px; color: #747474;"
+                                                                    >
+                                                                    <table st=
+yle=3D"width:100%;">
+                                                                        <tr>
+                                                                            <=
+td align=3D"center" style=3D"color: #747474;">
+                                                                             =
+   For any inquiries or questions
+                                                                             =
+   <a href=3D"https://www.developmentaid.org/contact"
+                                                                             =
+      target=3D"_blank" style=3D"color: #747474;">
+                                                                             =
+       Contact us
+                                                                             =
+   </a>
+                                                                            <=
+/td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                                             =
+                                                       <td style=3D"border-co=
+llapse: collapse;font-family: Arial, Helvetica, sans-serif; font-size: 14px; =
+line-height: 30px; color: #747474; padding-left: 8%;">
+                                                                        <tabl=
+e style=3D"font-family: Arial, Helvetica, sans-serif;width:100%;font-size: 14=
+px;">
+                                                                             =
+                                                                             =
+  <tr>
+                                                                             =
+     <td style=3D"color: #747474;">
+                                                                             =
+         If you are not interested in receiving future emails
+                                                                             =
+     </td>
+                                                                             =
+   </tr>
+                                                                             =
+                                                                           <t=
+r>
+                                                                             =
+   <td style=3D"color: #747474;">
+                                                                             =
+                                                                             =
+                  <a href=3D"https://www.developmentaid.org/newsletter/unsubs=
+cribe/ANON"
+                                                                             =
+              target=3D"_blank" style=3D"color: #747474;">
+                                                                             =
+               Unsubscribe
+                                                                             =
+           </a>
+                                                                             =
+                                                                             =
+                                                                             =
+                         &thinsp;&#8226;&thinsp;
+                                                                             =
+           <a href=3D"https://www.developmentaid.org/expertprofile/alerts/job"
+                                                                             =
+              target=3D"_blank" style=3D"color: #747474;">
+                                                                             =
+               Manage preferences
+                                                                             =
+           </a>
+                                                                             =
+                                                                             =
+          </td>
+                                                                            <=
+/tr>
+                                                                        </tab=
+le>
+                                                                    </td>
+                                                                             =
+                                               </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table width=3D"100%"
+                                                   style=3D"border-collapse: =
+collapse;background-color: #f9f9f9; width: 100%;">
+                                                <tr>
+                                                    <td width=3D"100%"
+                                                        align=3D"center"
+                                                        style=3D"border-colla=
+pse: collapse;font-family: Arial, Helvetica, sans-serif;
+                                                               width: 100%;
+                                                               text-align: ce=
+nter;
+                                                               font-size: 12p=
+x;
+                                                               color: #adadad;
+                                                               padding-bottom=
+: 30px;">
+                                                        Copyright =C2=A9 2007=
+-2026 DevelopmentAid. All Rights Reserved.
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                                                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

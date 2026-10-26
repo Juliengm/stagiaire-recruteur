@@ -5,6 +5,7 @@ from email import message_from_bytes, policy
 from veille_pipeline.connectors.gmail_alert import GmailAlertConnector
 from veille_pipeline.email_parsers.developmentaid import parse_developmentaid
 from veille_pipeline.email_parsers.linkedin import parse_linkedin
+from veille_pipeline.email_parsers.unvacancies import parse_unvacancies
 from veille_pipeline.normalizers.gmail_alert import normalize_gmail_alert
 
 NOW = datetime(2026, 10, 21, tzinfo=UTC)
@@ -13,7 +14,8 @@ SOURCE = {
     "config": {
         "oauth_token_file": "fake", "label": "alertes-emploi", "processed_label": "traité",
         "parsers": {"linkedin": {"from_contains": "linkedin.com"},
-                    "developmentaid": {"from_contains": "developmentaid.info"}},
+                    "developmentaid": {"from_contains": "developmentaid.info"},
+                    "unvacancies": {"from_contains": "unvacancies.org"}},
     },
 }
 
@@ -123,3 +125,54 @@ def test_developmentaid_keeps_truncated_titles_but_prefers_full_ones():
     assert set(jobs) == {"1", "2"}
     assert jobs["1"]["title"] == "Especialista en Transformación Digital" and not jobs["1"]["title_truncated"]
     assert jobs["2"]["title"] == "Directeur/directrice, Div" and jobs["2"]["title_truncated"]
+
+
+def test_linkedin_real_recap(fixtures):
+    jobs = parse_linkedin(_load(fixtures, "linkedin_recap.anon.eml"))
+    assert [(j["title"], j["organization"], j["location"]) for j in jobs] == [
+        ("Data engineer (H/F)", "Amiltone", "Lille"),
+        ("Data Engineer - F/H", "Niji", "La Madeleine"),
+        ("Lead Developer Java / Data Expérimenté F/H", "ABGi France", "Ronchin"),
+    ]
+
+
+def test_linkedin_similar_jobs_skip_the_reference_offer(fixtures):
+    # jobs-noreply@ : « offres similaires à X » ; l'offre X, en en-tête, n'est pas une nouvelle offre
+    jobs = parse_linkedin(_load(fixtures, "linkedin_similar.anon.eml"))
+    assert len(jobs) == 10 and "4383502509" not in {j["job_id"] for j in jobs}
+    assert jobs[0]["organization"] == "CHU de Reims"
+
+
+def test_developmentaid_table_layout(fixtures):
+    jobs = parse_developmentaid(_load(fixtures, "developmentaid_table.anon.eml"))
+    assert len(jobs) == 4 and all(j["title_truncated"] for j in jobs)
+    first = jobs[0]
+    assert first["title"] == "Chargé(e) de Projet Educa" and first["organization"] is None
+    assert first["organization_type"] == "Multilateral organization" and first["location"] == "Africa"
+    assert first["deadline"] == "2026-11-06" and first["contract"] == "Contract, 12 months +"
+    assert jobs[1]["deadline"] is None  # « Open until filled »
+
+
+def test_unvacancies_blocks_and_deadline_year(fixtures):
+    jobs = parse_unvacancies(_load(fixtures, "unvacancies_alert.anon.eml"))
+    assert [j["deadline"] for j in jobs] == ["2026-10-22", "2026-10-27", "2026-10-29"]
+    last = jobs[-1]
+    assert (last["title"], last["organization"], last["grade"]) == ("Nutrition Specialist", "UNICEF", "P-3")
+    assert last["location"] == "Antananarivo, Madagascar" and last["contract"] == "Fixed Term"
+    assert last["url"] == f"https://unvacancies.org/jobs/{last['job_id']}"
+    offer = normalize_gmail_alert(last, SOURCE)
+    assert offer.city == "Antananarivo" and offer.country == "Madagascar" and offer.contract_type == "cdd"
+
+
+def test_unvacancies_deadline_rolls_over_to_next_year():
+    from email.message import EmailMessage
+    msg = EmailMessage()
+    msg["Date"] = "Mon, 14 Dec 2026 08:00:00 +0000"
+    msg.set_content("Intro\n\nM&E Officer\n  WFP\n  P-2 · Home-based · Fixed Term\n  Closes 5 Jan\n"
+                    "  https://unvacancies.org/jobs/m-e-officer-1\n")
+    assert parse_unvacancies(msg)[0]["deadline"] == "2027-01-05"
+
+
+def test_connector_routes_unvacancies_by_sender(fixtures):
+    offers = GmailAlertConnector().parse_message(_load(fixtures, "unvacancies_alert.anon.eml"), SOURCE, NOW)
+    assert len(offers) == 3 and all(o.external_id.startswith("unvacancies:") for o in offers)

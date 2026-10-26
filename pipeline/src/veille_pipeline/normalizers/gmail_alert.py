@@ -28,7 +28,7 @@ def normalize_gmail_alert(payload: dict, source: dict) -> Offer:
         country=country,
         city=city,
         remote=bool(_REMOTE.search(f"{title} {location or ''}")),
-        contract_type="tender" if kind == "tenders" else detect_contract(title),
+        contract_type="tender" if kind == "tenders" else detect_contract(f"{title} {payload.get('contract') or ''}"),
         language="fr" if len(_FR_WORDS.findall(title)) >= 1 else "en",
         deadline=deadline,
     )
