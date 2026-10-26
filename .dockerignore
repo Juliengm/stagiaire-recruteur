@@ -1,0 +1,15 @@
+# secrets et données personnelles : montés en volume ou passés par env_file, jamais dans une image
+.env
+credentials/
+cv/
+tests/fixtures/email/
+*.dump
+# artefacts locaux
+**/node_modules
+web/dist
+**/.venv
+**/__pycache__
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+.git
