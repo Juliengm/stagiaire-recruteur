@@ -9,7 +9,7 @@ services:
     mem_limit: 512m
 
   dagster-code:
-    mem_limit: 2560m  # les runs et le modèle d'embeddings tournent dans ce conteneur
+    mem_limit: 3g  # runs + modèle d'embeddings (mesuré : 2,5 Go atteints au traitement, voir DEPLOY.md)
 
   dagster-webserver:
     mem_limit: 768m

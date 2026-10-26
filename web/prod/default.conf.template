@@ -1,6 +1,8 @@
 # Production : HTTPS + basic auth devant le front, l'API (/api/) et Dagster (/dagster/).
 # ${DOMAIN} est remplacé au démarrage (NGINX_ENVSUBST_FILTER) ; les autres $ sont des variables nginx.
-limit_req_zone $binary_remote_addr zone=perip:10m rate=10r/s;
+# freine les rafales (le vrai rempart contre la force brute est un mot de passe long et aléatoire) ;
+# Dagster charge des dizaines de fichiers d'un coup : la rafale doit rester large
+limit_req_zone $binary_remote_addr zone=perip:10m rate=20r/s;
 
 server {
     listen 80;
@@ -34,20 +36,27 @@ server {
 
     auth_basic "Stagiaire recruteur";
     auth_basic_user_file /etc/nginx/htpasswd;
-    limit_req zone=perip burst=40 nodelay;
+    limit_req zone=perip burst=200 nodelay;
 
     root /usr/share/nginx/html;
     client_max_body_size 6m;  # import du fichier Excel (5 Mo côté API)
 
+    # résolution à chaque requête (DNS de Docker) : un conteneur recréé change d'IP, sans cela
+    # nginx garde l'ancienne et répond 502 jusqu'à son redémarrage
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $api_upstream api;
+    set $dagster_upstream dagster-webserver;
+
     location /api/ {
-        proxy_pass http://api:8000/;
+        rewrite ^/api/(.*)$ /$1 break;  # avec une variable, proxy_pass ne retire pas le préfixe
+        proxy_pass http://$api_upstream:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
     }
 
     location /dagster/ {
-        proxy_pass http://dagster-webserver:3000;  # sans / final : le préfixe /dagster est conservé
+        proxy_pass http://$dagster_upstream:3000;  # sans chemin : le préfixe /dagster est conservé
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
