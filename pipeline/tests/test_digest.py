@@ -125,3 +125,19 @@ def test_send_discord_raises_on_http_error(monkeypatch):
         404, request=httpx.Request("POST", url)))
     with pytest.raises(httpx.HTTPStatusError):
         send_discord("https://discord.com/api/webhooks/1/x", "x")
+
+
+def test_interface_link_in_email_and_discord():
+    url = "https://stagiaire.example.org/"
+    assert f'href="{url}"' in render_digest([_offer()], TODAY, interface_url=url)
+    assert "interface" not in render_digest([_offer()], TODAY).lower()
+    text = render_discord([_offer()], TODAY, interface_url=url)
+    assert text.endswith(f"Interface : <{url}>")
+
+
+def test_discord_keeps_interface_link_under_the_limit():
+    offers = [_offer(title="T" * 300, organization="O" * 100, canonical_url="https://x.org/" + "u" * 200)
+              for _ in range(10)]
+    follow_ups = due_follow_ups([_app(organization="O" * 150, position="P" * 150)] * 5, TODAY)
+    text = render_discord(offers, TODAY, follow_ups, "https://stagiaire.example.org/")
+    assert len(text) <= DISCORD_LIMIT and text.endswith("<https://stagiaire.example.org/>")

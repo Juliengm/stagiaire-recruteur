@@ -54,13 +54,14 @@ def rapport_du_stagiaire(context: dg.AssetExecutionContext) -> dg.MaterializeRes
         if not offers and not follow_ups:
             return dg.MaterializeResult(metadata={"offres": 0, "relances": 0, "envoyé": False})
         to = os.environ.get("DIGEST_TO") or os.environ["CONTACT_EMAIL"]
-        send_email(render_digest(offers, today, follow_ups), subject_for(len(offers), len(follow_ups)),
+        interface_url = os.environ.get("INTERFACE_URL") or None
+        send_email(render_digest(offers, today, follow_ups, interface_url), subject_for(len(offers), len(follow_ups)),
                    to, os.environ.get("SMTP_HOST", "mailpit"), int(os.environ.get("SMTP_PORT", "1025")))
         session.add(Digest(channel="email", offer_ids=[o["id"] for o in offers]))
         discord_url = os.environ.get("DISCORD_WEBHOOK_URL")
         if discord_url:  # l'e-mail est parti : un échec Discord ne doit pas annuler l'enregistrement
             try:
-                send_discord(discord_url, render_discord(offers, today, follow_ups))
+                send_discord(discord_url, render_discord(offers, today, follow_ups, interface_url))
             except httpx.HTTPError as exc:
                 context.log.warning(f"envoi Discord échoué : {exc}")
         session.commit()

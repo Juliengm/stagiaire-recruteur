@@ -11,6 +11,7 @@ from jinja2 import Environment, select_autoescape
 
 _TEMPLATE = """\
 <h2>Rapport du stagiaire</h2>
+{% if interface_url %}<p><a href="{{ interface_url }}">Trier les offres et suivre les candidatures dans l'interface</a></p>{% endif %}
 {% if follow_ups %}
 <h3>Relances à faire</h3>
 <ul>
@@ -78,7 +79,8 @@ def due_follow_ups(applications: list[dict[str, Any]], today: date) -> list[dict
 
 
 def render_digest(offers: list[dict[str, Any]], today: date,
-                  follow_ups: list[dict[str, Any]] | None = None) -> str:
+                  follow_ups: list[dict[str, Any]] | None = None,
+                  interface_url: str | None = None) -> str:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for offer in sorted(offers, key=lambda o: -o["final_score"]):
         enriched = {
@@ -89,7 +91,8 @@ def render_digest(offers: list[dict[str, Any]], today: date,
         groups[zone_of(offer)].append(enriched)
     ordered = {zone: groups[zone] for zone in ZONE_ORDER if zone in groups}
     env = Environment(autoescape=select_autoescape(default=True))
-    return env.from_string(_TEMPLATE).render(groups=ordered, today=today, follow_ups=follow_ups or [])
+    return env.from_string(_TEMPLATE).render(groups=ordered, today=today, follow_ups=follow_ups or [],
+                                             interface_url=interface_url)
 
 
 def send_email(html: str, subject: str, to: str, host: str, port: int) -> None:
@@ -107,7 +110,8 @@ _ZONE_ICON = {"Madagascar": "🇲🇬", "Lille": "📍", "Télétravail / intern
 
 
 def render_discord(offers: list[dict[str, Any]], today: date,
-                   follow_ups: list[dict[str, Any]] | None = None) -> str:
+                   follow_ups: list[dict[str, Any]] | None = None,
+                   interface_url: str | None = None) -> str:
     """Message Discord compact : 10 offres au plus (les mieux notées), moins de 2 000 caractères."""
     head = [f"**{subject_for(len(offers), len(follow_ups or []))}**"]
     if follow_ups:
@@ -117,19 +121,21 @@ def render_discord(offers: list[dict[str, Any]], today: date,
             head.append(f"• {f.get('organization') or '?'} — {f.get('position') or 'poste ?'}"
                         f", relance du {f['follow_up_at']}{late}")
     lines = list(head)
+    footer = [f"Interface : <{interface_url}>"] if interface_url else []
+    reserve = 60 + sum(len(f) + 1 for f in footer)  # « … et N autres » + lien vers l'interface
     kept = 0
     for o in sorted(offers, key=lambda o: -o["final_score"])[:DISCORD_MAX_OFFERS]:
         deadline = f" · avant le {o['deadline']}" if o.get("deadline") else ""
         where = o.get("city") or o.get("country") or ("télétravail" if o.get("remote") else "?")
         line = (f"{_ZONE_ICON[zone_of(o)]} [{_shorten(o['title'], 80)}](<{o['canonical_url']}>)"
                 f" — {o.get('organization') or '?'}, {where}{deadline}")
-        if len("\n".join([*lines, line])) > DISCORD_LIMIT - 60:  # marge pour la ligne « … et N autres »
+        if len("\n".join([*lines, line])) > DISCORD_LIMIT - reserve:
             break
         lines.append(line)
         kept += 1
     if len(offers) > kept:
         lines.append(f"… et {len(offers) - kept} autres dans l'e-mail.")
-    return "\n".join(lines)
+    return "\n".join([*lines, *footer])
 
 
 def send_discord(webhook_url: str, content: str) -> None:
