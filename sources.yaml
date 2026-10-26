@@ -235,8 +235,10 @@ sources:
     kind: smartrecruiters
     region: [lille]
     priority: 3
-    verified: false
-    config: {company_id: Kiabi}               # identifiant à confirmer
+    verified: true
+    # identifiant « Kiabi » confirmé (199 offres dans le monde) ; siège à Lezennes (métropole lilloise).
+    # API SmartRecruiters : robots.txt ignoré sur décision de Julien (26/10/2026), voir SOURCES.md
+    config: {company_id: Kiabi, countries: [fr], cities: [Lezennes, Lille, Roubaix, Villeneuve-d'Ascq, Wasquehal]}
 
   - id: ovhcloud
     name: OVHcloud
