@@ -6,7 +6,7 @@ from email.message import EmailMessage
 from typing import Any
 
 import httpx
-from db.rules import ZONES, zone_code
+from db.rules import CLOSED_STATUSES, ZONES, zone_code
 from jinja2 import Environment, select_autoescape
 
 _TEMPLATE = """\
@@ -64,10 +64,6 @@ def subject_for(count: int, follow_ups: int = 0) -> str:
     if follow_ups:
         parts.append(f"{follow_ups} relance{'s' if follow_ups > 1 else ''}")
     return "Rapport du stagiaire — " + ", ".join(parts)
-
-
-# candidatures à ne plus relancer : refus, sans réponse définitif, entretien obtenu, clôturée
-CLOSED_STATUSES = {"rejected", "refused", "ghosted", "interview", "closed", "withdrawn", "ignored"}
 
 
 def due_follow_ups(applications: list[dict[str, Any]], today: date) -> list[dict[str, Any]]:

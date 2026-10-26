@@ -68,7 +68,7 @@ def test_follow_ups_due_today_or_late_sorted_by_delay():
 
 
 def test_closed_applications_are_not_followed_up():
-    apps = [_app(status=s, organization=s) for s in ("rejected", "ghosted", "interview", "REFUSED")]
+    apps = [_app(status=s, organization=s) for s in ("rejected", "ghosted", "interview", "IGNORED")]
     assert due_follow_ups(apps, TODAY) == []
     assert len(due_follow_ups([_app(status=None)], TODAY)) == 1
 
