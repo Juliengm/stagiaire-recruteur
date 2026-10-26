@@ -230,6 +230,18 @@ sources:
     verified: true
     config: {account: exotec, countries: [France]}   # 83 offres dans le monde, 31 en France (widget public, un seul appel)
 
+  - id: sopra_steria_lille
+    name: Sopra Steria — Lille
+    kind: sitemap_jsonld                     # plateforme carrières maison : sitemap des offres + JSON-LD JobPosting
+    region: [lille]
+    priority: 3
+    verified: true
+    config:
+      sitemap: https://careers.soprasteria.com/vacanciessitemap.xml   # ~2 070 offres en France
+      url_filter: "-lille-in-"               # slug « …-lille-in-villeneuve-d-ascq-france-jid-N » : 52 offres
+      max_pages: 60
+      defaults: {country: France}
+
   - id: kiabi
     name: Kiabi
     kind: smartrecruiters
