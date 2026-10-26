@@ -7,6 +7,7 @@ from veille_pipeline.normalizers.html_list import normalize_html_list
 from veille_pipeline.normalizers.pdf_page import normalize_pdf_page
 from veille_pipeline.normalizers.reliefweb import normalize_reliefweb
 from veille_pipeline.normalizers.rss import normalize_rss
+from veille_pipeline.normalizers.workable import normalize_workable
 from veille_pipeline.normalizers.worldbank import normalize_worldbank
 
 NORMALIZERS: dict[str, Callable[[dict, dict], Offer]] = {
@@ -17,4 +18,5 @@ NORMALIZERS: dict[str, Callable[[dict, dict], Offer]] = {
     "gmail_alert": normalize_gmail_alert,
     "html_list": normalize_html_list,
     "pdf_page": normalize_pdf_page,
+    "workable": normalize_workable,
 }

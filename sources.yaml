@@ -228,7 +228,7 @@ sources:
     region: [lille]
     priority: 3
     verified: true
-    config: {account: exotec}
+    config: {account: exotec, countries: [France]}   # 83 offres dans le monde, 31 en France (widget public, un seul appel)
 
   - id: kiabi
     name: Kiabi
