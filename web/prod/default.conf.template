@@ -1,0 +1,61 @@
+# Production : HTTPS + basic auth devant le front, l'API (/api/) et Dagster (/dagster/).
+# ${DOMAIN} est remplacé au démarrage (NGINX_ENVSUBST_FILTER) ; les autres $ sont des variables nginx.
+limit_req_zone $binary_remote_addr zone=perip:10m rate=10r/s;
+
+server {
+    listen 80;
+    server_name ${DOMAIN};
+
+    # validation Let's Encrypt : avant la redirection et sans authentification
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${DOMAIN};
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "same-origin" always;
+    server_tokens off;
+
+    auth_basic "Stagiaire recruteur";
+    auth_basic_user_file /etc/nginx/htpasswd;
+    limit_req zone=perip burst=40 nodelay;
+
+    root /usr/share/nginx/html;
+    client_max_body_size 6m;  # import du fichier Excel (5 Mo côté API)
+
+    location /api/ {
+        proxy_pass http://api:8000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    location /dagster/ {
+        proxy_pass http://dagster-webserver:3000;  # sans / final : le préfixe /dagster est conservé
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 300s;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

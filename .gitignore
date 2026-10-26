@@ -13,3 +13,7 @@ tests/fixtures/email/*.eml
 !tests/fixtures/email/*.anon.eml
 *.dump
 credentials/
+
+# production : sauvegardes de la base (données personnelles), fichier d'environnement du serveur
+backups/
+.env.prod

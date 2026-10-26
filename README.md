@@ -69,10 +69,15 @@ de ce qu'il fait.
 
 ```bash
 cp .env.example .env      # renseigner les clés (Gmail, ReliefWeb…)
-docker compose up -d
-# Dagster : http://localhost:3000 — Interface : http://localhost:8080
-# API (en local uniquement pour l'instant) : http://127.0.0.1:8000/docs
+docker compose up -d      # dev : ports sur 127.0.0.1 seulement (docker-compose.override.yml)
+# Interface : http://localhost:8080 — Dagster : http://localhost:8080/dagster/ (ou :3000/dagster/)
+# API : http://127.0.0.1:8000/docs
 ```
+
+**Accès en production** : `https://<domaine>/`, identifiant et mot de passe de la basic auth
+(`BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` dans le `.env` du serveur). La même authentification
+protège l'API (`/api/`, documentation sur `/api/docs`) et Dagster (`/dagster/`). Rien d'autre n'est
+exposé. Installation, certificat HTTPS, sauvegardes : [DEPLOY.md](DEPLOY.md).
 
 Tests de l'API : ils utilisent la base `veille_test` du Postgres de Docker, publié en dev sur
 `127.0.0.1:5433` (`VEILLE_TEST_DB_URL` pour en choisir une autre).

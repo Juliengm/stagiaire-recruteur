@@ -1,0 +1,66 @@
+# Production : docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# (jamais avec docker-compose.override.yml). Seul `web` publie des ports : 80 (ACME + redirection)
+# et 443 (HTTPS + basic auth). Voir DEPLOY.md.
+services:
+  postgres:
+    mem_limit: 512m
+
+  migrate:
+    mem_limit: 512m
+
+  dagster-code:
+    mem_limit: 2560m  # les runs et le modèle d'embeddings tournent dans ce conteneur
+
+  dagster-webserver:
+    mem_limit: 768m
+
+  dagster-daemon:
+    mem_limit: 512m
+
+  api:
+    mem_limit: 384m
+    command: [uvicorn, veille_api.main:app, --host, 0.0.0.0, --port, "8000", --root-path, /api]
+
+  web:
+    mem_limit: 128m
+    ports: ["${HTTP_PORT:-80}:80", "${HTTPS_PORT:-443}:443"]
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN manquant dans .env}
+      NGINX_ENVSUBST_FILTER: ^DOMAIN$
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:?BASIC_AUTH_USER manquant dans .env}
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:?BASIC_AUTH_PASSWORD manquant dans .env}
+    volumes:
+      - ./web/prod/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./web/prod/30-htpasswd.sh:/docker-entrypoint.d/30-htpasswd.sh:ro
+      - ./web/prod/40-certs.sh:/docker-entrypoint.d/40-certs.sh:ro
+      - ./web/prod/90-reload.sh:/docker-entrypoint.d/90-reload.sh:ro
+      - letsencrypt:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+
+  # renouvelle les certificats (le premier s'obtient à la main, voir DEPLOY.md)
+  certbot:
+    image: certbot/certbot:v3.0.1
+    mem_limit: 256m
+    restart: unless-stopped
+    volumes: [letsencrypt:/etc/letsencrypt, certbot_www:/var/www/certbot]
+    entrypoint: >-
+      /bin/sh -c 'trap exit TERM; while :; do
+      certbot renew --webroot -w /var/www/certbot --quiet;
+      sleep 12h & wait $${!}; done'
+
+  # pg_dump quotidien de la base veille (rotation 14 jours) ; copie hors du VPS : voir DEPLOY.md
+  backup:
+    image: pgvector/pgvector:pg16
+    mem_limit: 256m
+    restart: unless-stopped
+    env_file: .env
+    environment: {BACKUP_KEEP_DAYS: "14"}
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+      - ./docker/backup.sh:/backup.sh:ro
+    entrypoint: [/bin/sh, /backup.sh]
+    depends_on: {migrate: {condition: service_completed_successfully}}  # sinon 1er dump vide
+
+volumes:
+  letsencrypt:
+  certbot_www:
