@@ -2,8 +2,7 @@
 from dataclasses import dataclass
 from datetime import date
 
-SILENT_AFTER_RUNS = 3
-FAILURES_ALERT = 3
+from db.rules import FAILURES_ALERT, SILENT_AFTER_RUNS
 
 
 @dataclass(frozen=True)

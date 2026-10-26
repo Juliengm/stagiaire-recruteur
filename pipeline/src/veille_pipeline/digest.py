@@ -6,6 +6,7 @@ from email.message import EmailMessage
 from typing import Any
 
 import httpx
+from db.rules import ZONES, zone_code
 from jinja2 import Environment, select_autoescape
 
 _TEMPLATE = """\
@@ -43,14 +44,10 @@ _TEMPLATE = """\
 
 
 def zone_of(offer: dict[str, Any]) -> str:
-    if offer.get("country") == "Madagascar":
-        return "Madagascar"
-    if (offer.get("city") or "").lower() == "lille":
-        return "Lille"
-    return "Télétravail / international" if offer.get("remote") else "Autres"
+    return ZONES[zone_code(offer.get("country"), offer.get("city"), offer.get("remote"))]
 
 
-ZONE_ORDER = ["Madagascar", "Lille", "Télétravail / international", "Autres"]
+ZONE_ORDER = list(ZONES.values())
 CONTRACT_LABELS = {
     "cdi": "CDI", "cdd": "CDD", "consultancy": "consultance", "roster": "roster",
     "volunteer": "volontariat", "internship": "stage", "tender": "appel d'offres",
