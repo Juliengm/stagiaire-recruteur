@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from typing import ClassVar
 
 import httpx
 import pytest
@@ -9,6 +10,7 @@ from veille_pipeline.digest import (
     render_digest,
     render_discord,
     send_discord,
+    send_email,
     subject_for,
 )
 
@@ -141,3 +143,43 @@ def test_discord_keeps_interface_link_under_the_limit():
     follow_ups = due_follow_ups([_app(organization="O" * 150, position="P" * 150)] * 5, TODAY)
     text = render_discord(offers, TODAY, follow_ups, "https://stagiaire.example.org/")
     assert len(text) <= DISCORD_LIMIT and text.endswith("<https://stagiaire.example.org/>")
+
+
+class _FakeSmtp:
+    calls: ClassVar[list[tuple]] = []
+
+    def __init__(self, host, port, timeout):
+        self.calls.append(("connect", host, port))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def starttls(self):
+        self.calls.append(("starttls",))
+
+    def login(self, user, password):
+        self.calls.append(("login", user))
+
+    def send_message(self, msg):
+        self.calls.append(("send", msg["From"], msg["To"]))
+
+
+def test_send_email_plain_smtp_for_mailpit(monkeypatch):
+    monkeypatch.setattr("veille_pipeline.digest.smtplib.SMTP", _FakeSmtp)
+    _FakeSmtp.calls = []
+    send_email("<p>x</p>", "Sujet", "moi@example.org", "mailpit", 1025)
+    assert _FakeSmtp.calls == [("connect", "mailpit", 1025),
+                               ("send", "stagiaire@localhost", "moi@example.org")]
+
+
+def test_send_email_starttls_and_login_when_credentials(monkeypatch):
+    monkeypatch.setattr("veille_pipeline.digest.smtplib.SMTP", _FakeSmtp)
+    _FakeSmtp.calls = []
+    send_email("<p>x</p>", "Sujet", "moi@example.org", "smtp.example.org", 587,
+               user="bot@example.org", password="secret")
+    assert _FakeSmtp.calls == [("connect", "smtp.example.org", 587), ("starttls",),
+                               ("login", "bot@example.org"),
+                               ("send", "bot@example.org", "moi@example.org")]

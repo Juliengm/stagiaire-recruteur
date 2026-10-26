@@ -95,12 +95,18 @@ def render_digest(offers: list[dict[str, Any]], today: date,
                                              interface_url=interface_url)
 
 
-def send_email(html: str, subject: str, to: str, host: str, port: int) -> None:
+def send_email(html: str, subject: str, to: str, host: str, port: int,
+               user: str | None = None, password: str | None = None,
+               sender: str | None = None) -> None:
+    """SMTP simple (Mailpit en dev) ; avec identifiants : STARTTLS puis authentification."""
     msg = EmailMessage()
-    msg["Subject"], msg["From"], msg["To"] = subject, "stagiaire@localhost", to
+    msg["Subject"], msg["From"], msg["To"] = subject, sender or user or "stagiaire@localhost", to
     msg.set_content("Ce message est au format HTML.")
     msg.add_alternative(html, subtype="html")
-    with smtplib.SMTP(host, port) as smtp:
+    with smtplib.SMTP(host, port, timeout=30) as smtp:
+        if user:
+            smtp.starttls()
+            smtp.login(user, password or "")
         smtp.send_message(msg)
 
 

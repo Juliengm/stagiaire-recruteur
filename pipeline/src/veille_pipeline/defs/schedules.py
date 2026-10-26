@@ -1,3 +1,5 @@
+import os
+
 import dagster as dg
 from db.models import Source
 from sqlalchemy import select
@@ -14,6 +16,10 @@ from veille_pipeline.defs.assets.process import (
 )
 
 TZ = "Indian/Antananarivo"
+# Dagster crée les planifications arrêtées : on les démarre en production (SCHEDULES_RUNNING=true),
+# en dev elles restent arrêtées et les runs se lancent à la main.
+STATUS = (dg.DefaultScheduleStatus.RUNNING if os.environ.get("SCHEDULES_RUNNING") == "true"
+          else dg.DefaultScheduleStatus.STOPPED)
 
 ingest_job = dg.define_asset_job("ingest_job", selection=[raw_offers])
 process_job = dg.define_asset_job(
@@ -28,7 +34,8 @@ def _due_partitions(frequency: str) -> list[str]:
             select(Source.id).where(Source.enabled, Source.schedule == frequency)))
 
 
-@dg.schedule(cron_schedule="0 5 * * *", execution_timezone=TZ, job=ingest_job)
+@dg.schedule(cron_schedule="0 5 * * *", execution_timezone=TZ, job=ingest_job,
+             default_status=STATUS)
 def daily_ingest(context: dg.ScheduleEvaluationContext):
     known = set(context.instance.get_dynamic_partitions("sources"))
     for source_id in _due_partitions("daily"):
@@ -36,7 +43,8 @@ def daily_ingest(context: dg.ScheduleEvaluationContext):
             yield dg.RunRequest(partition_key=source_id, run_key=f"{source_id}-{context.scheduled_execution_time:%Y%m%d}")
 
 
-@dg.schedule(cron_schedule="30 4 * * 1", execution_timezone=TZ, job=ingest_job)
+@dg.schedule(cron_schedule="30 4 * * 1", execution_timezone=TZ, job=ingest_job,
+             default_status=STATUS)
 def weekly_ingest(context: dg.ScheduleEvaluationContext):
     known = set(context.instance.get_dynamic_partitions("sources"))
     for source_id in _due_partitions("weekly"):
@@ -46,8 +54,11 @@ def weekly_ingest(context: dg.ScheduleEvaluationContext):
 
 # L'aval n'est pas partitionné : il traite tout ce qui est arrivé après l'ingestion de 05:00.
 process_schedule = dg.ScheduleDefinition(
-    name="daily_process", job=process_job, cron_schedule="30 5 * * *", execution_timezone=TZ)
+    name="daily_process", job=process_job, cron_schedule="30 5 * * *", execution_timezone=TZ,
+    default_status=STATUS)
 digest_schedule = dg.ScheduleDefinition(
-    name="digest_schedule", job=digest_job, cron_schedule="0 7 * * 1,4", execution_timezone=TZ)
+    name="digest_schedule", job=digest_job, cron_schedule="0 7 * * 1,4", execution_timezone=TZ,
+    default_status=STATUS)
 registry_schedule = dg.ScheduleDefinition(
-    name="registry_schedule", job=registry_job, cron_schedule="0 4 * * *", execution_timezone=TZ)
+    name="registry_schedule", job=registry_job, cron_schedule="0 4 * * *", execution_timezone=TZ,
+    default_status=STATUS)
