@@ -71,6 +71,14 @@ de ce qu'il fait.
 cp .env.example .env      # renseigner les clés (Gmail, ReliefWeb…)
 docker compose up -d
 # Dagster : http://localhost:3000 — Interface : http://localhost:8080
+# API (en local uniquement pour l'instant) : http://127.0.0.1:8000/docs
+```
+
+Tests de l'API : ils utilisent la base `veille_test` du Postgres de Docker, publié en dev sur
+`127.0.0.1:5433` (`VEILLE_TEST_DB_URL` pour en choisir une autre).
+
+```bash
+cd api && uv run pytest -q && uv run ruff check . && uv run mypy src tests
 ```
 
 Les CV, les données personnelles et les e-mails réels ne sont pas dans ce dépôt.

@@ -1,4 +1,7 @@
 services:
+  postgres:  # dev : tests de l'API sur la base veille_test (5432 souvent pris par un Postgres local)
+    ports: ["127.0.0.1:5433:5432"]
+
   mailpit:
     image: axllent/mailpit
     ports: ["8025:8025", "1025:1025"]

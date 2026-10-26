@@ -38,6 +38,13 @@ services:
     command: dagster-daemon run -w /opt/dagster/home/workspace.yaml
     depends_on: [dagster-code]
 
+  api:
+    build: {context: ., dockerfile: api/Dockerfile}
+    env_file: .env
+    # 127.0.0.1 seulement : pas d'exposition publique avant l'authentification (nginx, étape 5)
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on: {migrate: {condition: service_completed_successfully}}
+
 volumes:
   hf_cache:
   pgdata:
