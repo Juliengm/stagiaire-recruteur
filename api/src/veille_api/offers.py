@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Annotated, Literal
 
 from db.models import Offer, OfferScore, UserStatus
-from db.rules import zone_sql
+from db.rules import Status, zone_sql
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
@@ -14,7 +14,6 @@ from veille_api.db import get_session
 
 router = APIRouter(tags=["offres"])
 
-Status = Literal["new", "interesting", "applied", "ghosted", "ignored", "rejected", "interview"]
 Region = Literal["mdg", "lille", "remote", "other"]
 
 

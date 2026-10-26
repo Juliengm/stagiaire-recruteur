@@ -139,6 +139,7 @@ class Application(Base):
     """Candidatures et relances (reprend le fichier Excel de prospection, SPEC §3.2)."""
 
     __tablename__ = "applications"
+    __table_args__ = (UniqueConstraint("sheet", "sheet_row"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     offer_id: Mapped[int | None] = mapped_column(ForeignKey("offers.id"))  # null : candidature spontanée
@@ -150,3 +151,5 @@ class Application(Base):
     sent_at: Mapped[date | None] = mapped_column(Date)
     follow_up_at: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
+    sheet: Mapped[str | None] = mapped_column(Text)  # onglet du fichier Excel importé (Madagascar, Lille)
+    sheet_row: Mapped[int | None] = mapped_column(Integer)  # colonne N° : clé de réimport
