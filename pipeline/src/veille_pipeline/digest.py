@@ -5,11 +5,25 @@ from datetime import date
 from email.message import EmailMessage
 from typing import Any
 
+import httpx
 from jinja2 import Environment, select_autoescape
 
 _TEMPLATE = """\
 <h2>Rapport du stagiaire</h2>
-{% if not groups %}<p>Rien de neuf aujourd'hui. Je continue de chercher.</p>{% endif %}
+{% if follow_ups %}
+<h3>Relances à faire</h3>
+<ul>
+{% for f in follow_ups %}
+  <li><b>{{ f.organization or "?" }}</b> — {{ f.position or "poste non précisé" }}
+    {% if f.sent_at %}(candidature du {{ f.sent_at }}){% endif %},
+    relance prévue le <span style="{% if f.overdue_days > 0 %}color:#c00{% endif %}">{{ f.follow_up_at }}</span>
+    {% if f.overdue_days > 0 %}({{ f.overdue_days }} j de retard){% endif %}
+    {% if f.contact %}· contact : {{ f.contact }}{% endif %}
+  </li>
+{% endfor %}
+</ul>
+{% endif %}
+{% if not groups and not follow_ups %}<p>Rien de neuf aujourd'hui. Je continue de chercher.</p>{% endif %}
 {% for zone, offers in groups.items() %}
 <h3>{{ zone }}</h3>
 <ul>
@@ -48,11 +62,30 @@ def _shorten(title: str, limit: int = 110) -> str:
     return title if len(title) <= limit else title[: limit - 1].rstrip() + "…"
 
 
-def subject_for(count: int) -> str:
-    return f"Rapport du stagiaire — {count} offre{'s' if count > 1 else ''}"
+def subject_for(count: int, follow_ups: int = 0) -> str:
+    parts = [f"{count} offre{'s' if count > 1 else ''}"] if count or not follow_ups else []
+    if follow_ups:
+        parts.append(f"{follow_ups} relance{'s' if follow_ups > 1 else ''}")
+    return "Rapport du stagiaire — " + ", ".join(parts)
 
 
-def render_digest(offers: list[dict[str, Any]], today: date) -> str:
+# candidatures à ne plus relancer : refus, sans réponse définitif, entretien obtenu, clôturée
+CLOSED_STATUSES = {"rejected", "refused", "ghosted", "interview", "closed", "withdrawn", "ignored"}
+
+
+def due_follow_ups(applications: list[dict[str, Any]], today: date) -> list[dict[str, Any]]:
+    """Candidatures dont la relance est due (date atteinte), les plus en retard d'abord."""
+    due = [
+        {**a, "overdue_days": (today - a["follow_up_at"]).days}
+        for a in applications
+        if a.get("follow_up_at") and a["follow_up_at"] <= today
+        and (a.get("status") or "").lower() not in CLOSED_STATUSES
+    ]
+    return sorted(due, key=lambda a: (-a["overdue_days"], a.get("organization") or ""))
+
+
+def render_digest(offers: list[dict[str, Any]], today: date,
+                  follow_ups: list[dict[str, Any]] | None = None) -> str:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for offer in sorted(offers, key=lambda o: -o["final_score"]):
         enriched = {
@@ -63,7 +96,7 @@ def render_digest(offers: list[dict[str, Any]], today: date) -> str:
         groups[zone_of(offer)].append(enriched)
     ordered = {zone: groups[zone] for zone in ZONE_ORDER if zone in groups}
     env = Environment(autoescape=select_autoescape(default=True))
-    return env.from_string(_TEMPLATE).render(groups=ordered, today=today)
+    return env.from_string(_TEMPLATE).render(groups=ordered, today=today, follow_ups=follow_ups or [])
 
 
 def send_email(html: str, subject: str, to: str, host: str, port: int) -> None:
@@ -73,3 +106,40 @@ def send_email(html: str, subject: str, to: str, host: str, port: int) -> None:
     msg.add_alternative(html, subtype="html")
     with smtplib.SMTP(host, port) as smtp:
         smtp.send_message(msg)
+
+
+DISCORD_LIMIT = 2000
+DISCORD_MAX_OFFERS = 10
+_ZONE_ICON = {"Madagascar": "🇲🇬", "Lille": "📍", "Télétravail / international": "🌍", "Autres": "▫️"}
+
+
+def render_discord(offers: list[dict[str, Any]], today: date,
+                   follow_ups: list[dict[str, Any]] | None = None) -> str:
+    """Message Discord compact : 10 offres au plus (les mieux notées), moins de 2 000 caractères."""
+    head = [f"**{subject_for(len(offers), len(follow_ups or []))}**"]
+    if follow_ups:
+        head.append("**Relances à faire**")
+        for f in follow_ups[:5]:
+            late = f" ({f['overdue_days']} j de retard)" if f["overdue_days"] > 0 else ""
+            head.append(f"• {f.get('organization') or '?'} — {f.get('position') or 'poste ?'}"
+                        f", relance du {f['follow_up_at']}{late}")
+    lines = list(head)
+    kept = 0
+    for o in sorted(offers, key=lambda o: -o["final_score"])[:DISCORD_MAX_OFFERS]:
+        deadline = f" · avant le {o['deadline']}" if o.get("deadline") else ""
+        where = o.get("city") or o.get("country") or ("télétravail" if o.get("remote") else "?")
+        line = (f"{_ZONE_ICON[zone_of(o)]} [{_shorten(o['title'], 80)}](<{o['canonical_url']}>)"
+                f" — {o.get('organization') or '?'}, {where}{deadline}")
+        if len("\n".join([*lines, line])) > DISCORD_LIMIT - 60:  # marge pour la ligne « … et N autres »
+            break
+        lines.append(line)
+        kept += 1
+    if len(offers) > kept:
+        lines.append(f"… et {len(offers) - kept} autres dans l'e-mail.")
+    return "\n".join(lines)
+
+
+def send_discord(webhook_url: str, content: str) -> None:
+    """Poste le message via un webhook de salon (réponse 204)."""
+    httpx.post(webhook_url, json={"content": content, "allowed_mentions": {"parse": []}},
+               timeout=15).raise_for_status()

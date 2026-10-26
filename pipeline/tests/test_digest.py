@@ -1,6 +1,16 @@
-from datetime import date
+from datetime import date, timedelta
 
-from veille_pipeline.digest import render_digest, subject_for
+import httpx
+import pytest
+
+from veille_pipeline.digest import (
+    DISCORD_LIMIT,
+    due_follow_ups,
+    render_digest,
+    render_discord,
+    send_discord,
+    subject_for,
+)
 
 TODAY = date(2026, 10, 21)
 
@@ -33,3 +43,85 @@ def test_subject_is_singular_for_one_offer():
 
 def test_titles_are_html_escaped():
     assert "<script>" not in render_digest([_offer(title="<script>alert(1)</script>")], TODAY)
+
+
+# ── relances et Discord ───────────────────────────────────────────────────────
+
+
+
+def _app(**kw):
+    base = {"organization": "Org", "position": "Poste", "contact": None, "status": "applied",
+            "sent_at": TODAY - timedelta(days=15), "follow_up_at": TODAY}
+    return {**base, **kw}
+
+
+def test_follow_ups_due_today_or_late_sorted_by_delay():
+    apps = [
+        _app(organization="B", follow_up_at=TODAY),
+        _app(organization="A", follow_up_at=TODAY - timedelta(days=4)),
+        _app(organization="Futur", follow_up_at=TODAY + timedelta(days=1)),
+        _app(organization="Sans date", follow_up_at=None),
+    ]
+    due = due_follow_ups(apps, TODAY)
+    assert [a["organization"] for a in due] == ["A", "B"]
+    assert due[0]["overdue_days"] == 4
+
+
+def test_closed_applications_are_not_followed_up():
+    apps = [_app(status=s, organization=s) for s in ("rejected", "ghosted", "interview", "REFUSED")]
+    assert due_follow_ups(apps, TODAY) == []
+    assert len(due_follow_ups([_app(status=None)], TODAY)) == 1
+
+
+def test_email_shows_follow_ups_even_without_new_offers():
+    html = render_digest([], TODAY, due_follow_ups([_app(organization="Expertise France")], TODAY))
+    assert "Relances à faire" in html and "Expertise France" in html
+    assert "Rien de neuf" not in html
+    assert "Relances à faire" not in render_digest([_offer()], TODAY)
+
+
+def test_subject_mentions_follow_ups():
+    assert subject_for(3, 2).endswith("3 offres, 2 relances")
+    assert subject_for(0, 1).endswith("1 relance")
+
+
+def test_discord_limits_to_ten_offers_best_first():
+    offers = [_offer(title=f"Offre {i}", final_score=i / 100, canonical_url=f"https://x.org/{i}")
+              for i in range(25)]
+    text = render_discord(offers, TODAY)
+    assert text.count("](<https://x.org/") == 10
+    assert "Offre 24" in text and "Offre 14" not in text
+    assert "… et 15 autres dans l'e-mail." in text
+
+
+def test_discord_stays_under_the_2000_character_limit():
+    offers = [_offer(title="T" * 300, organization="O" * 100, canonical_url="https://x.org/" + "u" * 200)
+              for _ in range(10)]
+    follow_ups = due_follow_ups([_app(organization="O" * 150, position="P" * 150)] * 5, TODAY)
+    assert len(render_discord(offers, TODAY, follow_ups)) <= DISCORD_LIMIT
+
+
+def test_discord_follow_ups_come_first_and_links_are_not_embedded():
+    text = render_discord([_offer(country="Madagascar")], TODAY, due_follow_ups([_app()], TODAY))
+    assert text.index("Relances à faire") < text.index("🇲🇬")
+    assert "](<https://x.org/1>)" in text  # chevrons : pas d'aperçu de lien
+
+
+def test_send_discord_posts_json_without_mentions(monkeypatch):
+    calls = []
+
+    def fake_post(url, json, timeout):
+        calls.append((url, json))
+        return httpx.Response(204, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    send_discord("https://discord.com/api/webhooks/1/x", "bonjour")
+    assert calls == [("https://discord.com/api/webhooks/1/x",
+                      {"content": "bonjour", "allowed_mentions": {"parse": []}})]
+
+
+def test_send_discord_raises_on_http_error(monkeypatch):
+    monkeypatch.setattr(httpx, "post", lambda url, json, timeout: httpx.Response(
+        404, request=httpx.Request("POST", url)))
+    with pytest.raises(httpx.HTTPStatusError):
+        send_discord("https://discord.com/api/webhooks/1/x", "x")

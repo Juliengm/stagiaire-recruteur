@@ -6,13 +6,18 @@ from sqlalchemy.orm import Session
 from veille_pipeline.db import get_engine
 from veille_pipeline.defs.assets.digest import rapport_du_stagiaire
 from veille_pipeline.defs.assets.ingest import raw_offers, sources_registry
-from veille_pipeline.defs.assets.process import offers_deduped, offers_normalized, offers_scored
+from veille_pipeline.defs.assets.process import (
+    cv_embeddings,
+    offers_deduped,
+    offers_normalized,
+    offers_scored,
+)
 
 TZ = "Indian/Antananarivo"
 
 ingest_job = dg.define_asset_job("ingest_job", selection=[raw_offers])
 process_job = dg.define_asset_job(
-    "process_job", selection=[offers_normalized, offers_deduped, offers_scored])
+    "process_job", selection=[offers_normalized, offers_deduped, cv_embeddings, offers_scored])
 digest_job = dg.define_asset_job("digest_job", selection=[rapport_du_stagiaire])
 registry_job = dg.define_asset_job("registry_job", selection=[sources_registry])
 

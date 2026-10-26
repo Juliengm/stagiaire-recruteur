@@ -133,3 +133,20 @@ class OfferEmbedding(Base):
     offer_id: Mapped[int] = mapped_column(ForeignKey("offers.id"), primary_key=True)
     text_hash: Mapped[str] = mapped_column(Text)  # texte embarqué : recalcul s'il change
     embedding = mapped_column(Vector(EMBEDDING_DIM))
+
+
+class Application(Base):
+    """Candidatures et relances (reprend le fichier Excel de prospection, SPEC §3.2)."""
+
+    __tablename__ = "applications"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    offer_id: Mapped[int | None] = mapped_column(ForeignKey("offers.id"))  # null : candidature spontanée
+    organization: Mapped[str | None] = mapped_column(Text)
+    contact: Mapped[str | None] = mapped_column(Text)
+    position: Mapped[str | None] = mapped_column(Text)
+    cv_sent: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str | None] = mapped_column(Text)
+    sent_at: Mapped[date | None] = mapped_column(Date)
+    follow_up_at: Mapped[date | None] = mapped_column(Date)
+    notes: Mapped[str | None] = mapped_column(Text)
