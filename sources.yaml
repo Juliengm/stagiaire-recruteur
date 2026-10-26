@@ -391,7 +391,7 @@ sources:
     kind: gmail_alert
     region: [mdg, lille, remote]
     priority: 1
-    verified: false
+    verified: true                            # 26/10/2026 : LinkedIn, DevelopmentAid, unvacancies reçus et parsés
     config:
       label: alertes-emploi                   # libellé posé par un filtre Gmail sur les alertes entrantes
       processed_label: traité
