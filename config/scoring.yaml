@@ -5,13 +5,28 @@ title_multiplier: 3      # un mot-clé du titre vaut 3× son poids
 description_cap: 1       # points maximum venant de la description (tous profils confondus)
 no_keyword_cap: 0.1      # plafond si aucun mot-clé trouvé (le lieu seul ne suffit pas)
 
-# Similarité sémantique offre / CV (cv/*.md). Le cosinus brut est ramené à [0, 1] entre floor et ceil.
-# ⚠ floor et ceil provisoires (mesure du 26/10 avec e5-base : offre S&E ≈ 0,91, offre hors sujet ≈ 0,83) :
-#   à recalibrer avec les vrais CV.
+# Similarité sémantique offre / CV (colonnes embed_score et embed_cv, à titre indicatif).
+# weight: 0 → le final_score reste celui des règles. Mesure du 26/10/2026 (e5-base, 6 CV réels, 326 offres) :
+# AUC 0,63 à 0,72 selon la méthode (moyenne des tronçons, meilleur tronçon, préfixes query/passage, titre seul),
+# et le top 12 ne contient presque aucune des offres que les règles jugent très pertinentes. À 0,5, des offres
+# hors sujet (modéliste, juriste) passaient le seuil du rapport. Ne remonter le poids qu'après avoir changé de
+# modèle (bge-m3) ou de méthode et revérifié ; floor et ceil servent alors à ramener le cosinus dans [0, 1].
 embedding:
-  weight: 0.5            # final = 0.5 × règles + 0.5 × embeddings (SPEC §3.4)
+  weight: 0
   floor: 0.80
   ceil: 0.92
+
+# CV comparés aux offres (motifs de fichiers de cv/, .docx ou .md ; sans nom de personne : dépôt public) :
+# code → motif. Les codes NP5_FR, DATA_FR et MEAL_EN sont ceux de `profiles` ci-dessous (choix par mots-clés) ;
+# les variantes de l'autre langue ne sont choisies que par similarité. Les CV complets (CV_Complet_*) ne sont
+# volontairement pas listés.
+cvs:
+  NP5_FR: "*Reinstallation_NP5_FR.docx"
+  NP5_EN: "*Resettlement_PS5_EN.docx"
+  DATA_FR: "*Data_Platform_Product_FR.docx"
+  DATA_EN: "*Data_Platform_Product_EN.docx"
+  MEAL_FR: "*Expert_SocioEco_SuiviEval_FR.docx"
+  MEAL_EN: "*SocioEco_ME_Expert_EN.docx"
 
 profiles:
   NP5_FR:

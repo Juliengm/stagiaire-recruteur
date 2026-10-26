@@ -93,9 +93,9 @@ def normalize_embed(cosine_score: float, cfg: dict[str, Any]) -> float:
 
 def combine_scores(score: Score, cosine_score: float | None, cfg: dict[str, Any]) -> float:
     """final = (1 - w) × règles + w × embeddings ; sans CV, le score par règles seul."""
-    if cosine_score is None:
-        return score.final_score
     weight = cfg["embedding"]["weight"]
+    if cosine_score is None or weight == 0:
+        return score.final_score  # règles seules, plafonds compris (aucun mot-clé, hors zone)
     final = (1 - weight) * score.rule_normalized + weight * normalize_embed(cosine_score, cfg)
     return min(final, score.zone_cap) if score.zone_cap is not None else final
 

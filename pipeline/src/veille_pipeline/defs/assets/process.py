@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from veille_pipeline.cv_files import read_cv
 from veille_pipeline.db import get_engine
 from veille_pipeline.dedupe import Candidate, find_duplicates, fingerprint
 from veille_pipeline.defs.assets.common import SCORING_FILE
@@ -74,31 +75,40 @@ def offers_deduped(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
 
 @dg.asset(group_name="traitement")
 def cv_embeddings(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
-    """Embeddings des CV (`cv/<CODE>.md`) ; un CV n'est recalculé que si son contenu change.
+    """Embeddings des CV listés sous `cvs:` de scoring.yaml ; recalculé seulement si le texte change.
 
-    Sans fichier `cv/*.md`, aucun embedding : le score reste celui des règles.
+    Sans CV, aucun embedding : le score reste celui des règles.
     """
-    files = sorted(p for p in CV_DIR.glob("*.md") if p.stem != "faits")  # faits.md : faits, pas un CV
+    cfg = load_scoring_config(SCORING_FILE)
+    files: dict[str, Path] = {}
+    for code, pattern in cfg.get("cvs", {}).items():
+        found = sorted(CV_DIR.glob(pattern), key=lambda p: p.stat().st_mtime)
+        if found:
+            files[code] = found[-1]  # plusieurs versions : la plus récente
+        else:
+            context.log.warning(f"CV {code} introuvable ({pattern} dans {CV_DIR})")
     if not files:
-        context.log.warning(f"aucun CV dans {CV_DIR} : pas de score sémantique")
+        context.log.warning("aucun CV : pas de score sémantique")
         return dg.MaterializeResult(metadata={"cv": 0, "recalculés": 0})
     computed = 0
     with Session(get_engine()) as session:
         known = {c.code: c for c in session.scalars(select(CvProfile))}
-        stale = [p for p in files if (c := known.get(p.stem)) is None
-                 or c.content_hash != text_hash(p.read_text(encoding="utf-8"))]
+        texts = {code: read_cv(path) for code, path in files.items()}
+        stale = [code for code, text in texts.items()
+                 if code not in known or known[code].content_hash != text_hash(text)]
         if stale:
-            texts = [p.read_text(encoding="utf-8") for p in stale]
-            for path, text, vector in zip(stale, texts, get_embedder().embed_cvs(texts), strict=True):
+            vectors = get_embedder().embed_cvs([texts[code] for code in stale])
+            for code, vector in zip(stale, vectors, strict=True):
                 stmt = insert(CvProfile).values(
-                    code=path.stem, text_content=text, content_hash=text_hash(text), embedding=vector)
+                    code=code, text_content=texts[code], content_hash=text_hash(texts[code]),
+                    embedding=vector)
                 session.execute(stmt.on_conflict_do_update(
                     index_elements=[CvProfile.code],
                     set_={"text_content": stmt.excluded.text_content,
                           "content_hash": stmt.excluded.content_hash,
                           "embedding": stmt.excluded.embedding, "updated_at": func.now()}))
                 computed += 1
-        for code in set(known) - {p.stem for p in files}:  # CV supprimé du dossier
+        for code in set(known) - set(files):  # CV retiré de la configuration
             session.delete(known[code])
         session.commit()
     return dg.MaterializeResult(metadata={"cv": len(files), "recalculés": computed})

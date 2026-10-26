@@ -29,7 +29,17 @@ class SentenceTransformerEmbedder:
             [f"passage: {t}" for t in texts], normalize_embeddings=True, batch_size=16)
         return [[float(x) for x in v] for v in vectors]
 
-    embed_cvs = _encode
+    def embed_cvs(self, texts: list[str]) -> list[list[float]]:
+        """Un CV dépasse les 512 jetons du modèle : vecteur moyen de ses tronçons."""
+        result = []
+        for text in texts:
+            chunks = chunk_words(text)
+            vectors = self._encode(chunks)
+            mean = [sum(col) / len(vectors) for col in zip(*vectors, strict=True)]
+            norm = math.sqrt(sum(x * x for x in mean)) or 1.0
+            result.append([x / norm for x in mean])
+        return result
+
     embed_offers = _encode
 
 
@@ -47,6 +57,11 @@ class FakeEmbedder:
         return [self._vector(t) for t in texts]
 
     embed_offers = embed_cvs
+
+
+def chunk_words(text: str, size: int = 250) -> list[str]:
+    words = text.split()
+    return [" ".join(words[i:i + size]) for i in range(0, len(words), size)] or [""]
 
 
 def get_embedder() -> Embedder:

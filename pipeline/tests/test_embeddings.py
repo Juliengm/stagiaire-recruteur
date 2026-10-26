@@ -65,17 +65,25 @@ def test_combine_without_cv_keeps_rule_score():
     assert combine_scores(s, None, CFG) == s.final_score
 
 
+def test_default_weight_is_zero_so_rules_alone_decide():
+    s = _score(title="Modéliste", country="France")
+    assert CFG["embedding"]["weight"] == 0
+    assert combine_scores(s, 0.99, CFG) == s.final_score
+
+
 def test_combine_is_weighted_average():
     s = _score()
-    weight = CFG["embedding"]["weight"]
+    cfg = {"embedding": {**CFG["embedding"], "weight": 0.5}}
+    weight = cfg["embedding"]["weight"]
     expected = (1 - weight) * s.rule_normalized + weight * 1.0
-    assert combine_scores(s, 0.99, CFG) == pytest.approx(expected)
+    assert combine_scores(s, 0.99, cfg) == pytest.approx(expected)
 
 
 def test_outside_zone_cap_survives_embeddings():
     s = _score(country="Ecuador")
     assert s.zone_cap is not None
-    assert combine_scores(s, 0.99, CFG) <= s.zone_cap
+    cfg = {"embedding": {**CFG["embedding"], "weight": 0.5}}
+    assert combine_scores(s, 0.99, cfg) <= s.zone_cap
 
 
 def test_text_hash_changes_with_text():
