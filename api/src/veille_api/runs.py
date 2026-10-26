@@ -38,7 +38,7 @@ class RunOut(BaseModel):
 
 
 def graphql_url() -> str:
-    return os.environ.get("DAGSTER_GRAPHQL_URL", "http://dagster-webserver:3000/graphql")
+    return os.environ.get("DAGSTER_GRAPHQL_URL", "http://dagster-webserver:3000/dagster/graphql")
 
 
 def get_http() -> httpx.Client:

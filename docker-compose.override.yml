@@ -1,7 +1,17 @@
+# Dev uniquement (chargé automatiquement par `docker compose`, jamais en prod) : ports sur 127.0.0.1.
 services:
-  postgres:  # dev : tests de l'API sur la base veille_test (5432 souvent pris par un Postgres local)
+  postgres:  # tests de l'API sur la base veille_test (5432 souvent pris par un Postgres local)
     ports: ["127.0.0.1:5433:5432"]
+
+  dagster-webserver:
+    ports: ["127.0.0.1:3000:3000"]  # http://localhost:3000/dagster
+
+  api:
+    ports: ["127.0.0.1:8000:8000"]
+
+  web:
+    ports: ["127.0.0.1:8080:80"]
 
   mailpit:
     image: axllent/mailpit
-    ports: ["8025:8025", "1025:1025"]
+    ports: ["127.0.0.1:8025:8025", "127.0.0.1:1025:1025"]

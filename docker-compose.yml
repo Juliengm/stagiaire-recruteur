@@ -1,3 +1,5 @@
+# Aucun port publié ici : les ports de dev sont dans docker-compose.override.yml (chargé
+# automatiquement, 127.0.0.1 seulement) ; en prod seul `web` publie 80/443 (docker-compose.prod.yml).
 x-dagster: &dagster
   build: {context: ., dockerfile: pipeline/Dockerfile}
   env_file: .env
@@ -17,6 +19,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d veille"]
       interval: 5s
       retries: 20
+    restart: unless-stopped
 
   migrate:
     <<: *dagster
@@ -26,30 +29,31 @@ services:
     <<: *dagster
     command: dagster code-server start -h 0.0.0.0 -p 4000 -m veille_pipeline.definitions
     depends_on: {migrate: {condition: service_completed_successfully}}
+    restart: unless-stopped
 
   dagster-webserver:
     <<: *dagster
-    command: dagster-webserver -h 0.0.0.0 -p 3000 -w /opt/dagster/home/workspace.yaml
-    ports: ["3000:3000"]
+    # préfixe /dagster en dev comme en prod (derrière nginx) : GraphQL sur /dagster/graphql
+    command: dagster-webserver -h 0.0.0.0 -p 3000 --path-prefix /dagster -w /opt/dagster/home/workspace.yaml
     depends_on: [dagster-code]
+    restart: unless-stopped
 
   dagster-daemon:
     <<: *dagster
     command: dagster-daemon run -w /opt/dagster/home/workspace.yaml
     depends_on: [dagster-code]
+    restart: unless-stopped
 
   api:
     build: {context: ., dockerfile: api/Dockerfile}
     env_file: .env
-    # 127.0.0.1 seulement : pas d'exposition publique avant l'authentification (nginx, étape 5)
-    ports: ["127.0.0.1:8000:8000"]
     depends_on: {migrate: {condition: service_completed_successfully}}
+    restart: unless-stopped
 
   web:
     build: {context: ., dockerfile: web/Dockerfile}
-    # 127.0.0.1 seulement : pas d'exposition publique avant l'authentification (étape 5)
-    ports: ["127.0.0.1:8080:80"]
-    depends_on: [api]
+    depends_on: [api, dagster-webserver]
+    restart: unless-stopped
 
 volumes:
   hf_cache:
