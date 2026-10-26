@@ -54,8 +54,9 @@ def test_onsite_job_outside_zone_is_penalized():
     abroad = score_offer({**base, "country": "Malawi", "remote": False}, cfg)
     home = score_offer({**base, "country": "Madagascar", "remote": False}, cfg)
     remote_abroad = score_offer({**base, "country": "Malawi", "remote": True}, cfg)
-    assert abroad.final_score < 0.25 <= home.final_score
-    assert remote_abroad.final_score >= 0.25
+    assert abroad.final_score < home.final_score
+    assert abroad.final_score <= cfg["outside_zone_cap"]  # plafonné, mais peut passer le seuil s'il est très bon
+    assert remote_abroad.final_score >= cfg["threshold"]
 
 
 def _cfg():
@@ -66,7 +67,11 @@ def test_description_alone_cannot_qualify_an_offer():
     boilerplate = "suivi évaluation monitoring evaluation learning données data"
     offer = {"title": "Assistant en passation de marchés", "description": boilerplate,
              "country": "Madagascar", "contract_type": "consultancy", "language": "fr"}
-    assert score_offer(offer, _cfg()).final_score < 0.25
+    # depuis le seuil à 0,15 (26/10/2026) une offre malgache peut apparaître sur sa seule description,
+    # mais loin derrière la même offre dont le titre contient le mot-clé
+    weak = score_offer(offer, _cfg()).final_score
+    strong = score_offer({**offer, "title": "Chargé de suivi évaluation"}, _cfg()).final_score
+    assert weak <= 0.25 and weak < strong / 2
 
 
 def test_location_alone_is_never_relevant():

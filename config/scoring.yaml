@@ -1,5 +1,5 @@
 # Mots-clés, poids et seuil du récapitulatif. Modifiable sans toucher au code.
-threshold: 0.25          # final_score minimal pour apparaître dans le récapitulatif
+threshold: 0.15          # final_score minimal pour apparaître dans le récapitulatif
 rule_score_cap: 20       # rule_score ramené à [0,1] par min(score/cap, 1)
 title_multiplier: 3      # un mot-clé du titre vaut 3× son poids
 description_cap: 1       # points maximum venant de la description (tous profils confondus)
@@ -87,7 +87,7 @@ location_bonus:
 
 # Malus si l'offre n'est ni à Madagascar, ni à Lille/en France, ni en télétravail
 outside_zone_penalty: 10
-outside_zone_cap: 0.2      # plafond du score final : reste sous le seuil du rapport
+outside_zone_cap: 0.3      # plafond du score final hors zone : une offre très bien notée par les règles passe quand même le seuil
 allowed_countries: [madagascar, france]
 
 contract_bonus:
