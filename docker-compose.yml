@@ -1,7 +1,8 @@
 x-dagster: &dagster
   build: {context: ., dockerfile: pipeline/Dockerfile}
   env_file: .env
-  volumes: ["./credentials:/app/credentials:ro"]
+  environment: {HF_HOME: /hf_cache}
+  volumes: ["./credentials:/app/credentials:ro", "./cv:/app/cv:ro", "${HF_CACHE_DIR:-hf_cache}:/hf_cache"]
   depends_on: {postgres: {condition: service_healthy}}
 
 services:
@@ -38,4 +39,5 @@ services:
     depends_on: [dagster-code]
 
 volumes:
+  hf_cache:
   pgdata:

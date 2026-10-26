@@ -13,6 +13,8 @@ class Score:
     final_score: float
     recommended_cv: str | None
     matched_keywords: list[str]
+    rule_normalized: float = 0.0      # rule_score ramené à [0, 1], avant plafond de zone
+    zone_cap: float | None = None     # plafond hors zone, réappliqué après combinaison
 
 
 def load_scoring_config(path: Path) -> dict[str, Any]:
@@ -78,7 +80,24 @@ def score_offer(offer: dict[str, Any], cfg: dict[str, Any]) -> Score:
         final_score=normalized,
         recommended_cv=best if best and per_profile[best] > 0 else None,
         matched_keywords=sorted(matched),
+        rule_normalized=max(0.0, min(score / cfg["rule_score_cap"], 1.0)),
+        zone_cap=outside_cap,
     )
+
+
+def normalize_embed(cosine_score: float, cfg: dict[str, Any]) -> float:
+    """Cosinus brut → [0, 1] : les cosinus e5 se concentrent entre 0,7 et 0,9."""
+    floor, ceil = cfg["embedding"]["floor"], cfg["embedding"]["ceil"]
+    return max(0.0, min((cosine_score - floor) / (ceil - floor), 1.0))
+
+
+def combine_scores(score: Score, cosine_score: float | None, cfg: dict[str, Any]) -> float:
+    """final = (1 - w) × règles + w × embeddings ; sans CV, le score par règles seul."""
+    if cosine_score is None:
+        return score.final_score
+    weight = cfg["embedding"]["weight"]
+    final = (1 - weight) * score.rule_normalized + weight * normalize_embed(cosine_score, cfg)
+    return min(final, score.zone_cap) if score.zone_cap is not None else final
 
 
 def _cv_candidates(per_profile: dict[str, float], language: str | None) -> list[str]:

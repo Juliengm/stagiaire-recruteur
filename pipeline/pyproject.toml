@@ -20,7 +20,11 @@ dependencies = [
     "google-auth-oauthlib>=1.2",
     "rapidfuzz>=3.14.6",
     "pypdf>=6.21.1",
+    "pgvector>=0.5.1",
 ]
+
+[project.optional-dependencies]
+embeddings = ["sentence-transformers>=3.0"]  # installé dans l'image Docker ; les tests utilisent un faux modèle
 
 [dependency-groups]
 dev = [

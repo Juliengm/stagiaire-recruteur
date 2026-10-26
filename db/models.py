@@ -14,8 +14,12 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+EMBEDDING_DIM = 768  # intfloat/multilingual-e5-base ; changer de modèle impose une migration
 
 
 class Base(DeclarativeBase):
@@ -90,6 +94,8 @@ class OfferScore(Base):
     final_score: Mapped[float | None]
     recommended_cv: Mapped[str | None] = mapped_column(Text)
     matched_keywords: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
+    embed_score: Mapped[float | None]
+    embed_cv: Mapped[str | None] = mapped_column(Text)  # CV le plus proche sémantiquement
     scored_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -109,3 +115,21 @@ class Digest(Base):
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     channel: Mapped[str] = mapped_column(Text)
     offer_ids: Mapped[list[int]] = mapped_column(ARRAY(BigInteger), default=list)
+
+
+class CvProfile(Base):
+    __tablename__ = "cv_profiles"
+
+    code: Mapped[str] = mapped_column(Text, primary_key=True)  # nom du fichier cv/<code>.md
+    text_content: Mapped[str] = mapped_column(Text)
+    content_hash: Mapped[str] = mapped_column(Text)
+    embedding = mapped_column(Vector(EMBEDDING_DIM))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class OfferEmbedding(Base):
+    __tablename__ = "offer_embeddings"
+
+    offer_id: Mapped[int] = mapped_column(ForeignKey("offers.id"), primary_key=True)
+    text_hash: Mapped[str] = mapped_column(Text)  # texte embarqué : recalcul s'il change
+    embedding = mapped_column(Vector(EMBEDDING_DIM))

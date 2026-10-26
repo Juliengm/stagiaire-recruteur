@@ -5,6 +5,14 @@ title_multiplier: 3      # un mot-clé du titre vaut 3× son poids
 description_cap: 1       # points maximum venant de la description (tous profils confondus)
 no_keyword_cap: 0.1      # plafond si aucun mot-clé trouvé (le lieu seul ne suffit pas)
 
+# Similarité sémantique offre / CV (cv/*.md). Le cosinus brut est ramené à [0, 1] entre floor et ceil.
+# ⚠ floor et ceil provisoires (mesure du 26/10 avec e5-base : offre S&E ≈ 0,91, offre hors sujet ≈ 0,83) :
+#   à recalibrer avec les vrais CV.
+embedding:
+  weight: 0.5            # final = 0.5 × règles + 0.5 × embeddings (SPEC §3.4)
+  floor: 0.80
+  ceil: 0.92
+
 profiles:
   NP5_FR:
     réinstallation: 3
