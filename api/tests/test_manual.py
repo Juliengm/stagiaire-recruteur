@@ -54,3 +54,16 @@ def test_state_is_404_until_processed_then_gives_score(client: TestClient,
     state = client.get(f"/offers/manual/{ext}").json()
     assert state == {"offer_id": offer.id, "duplicate_of": None, "final_score": 0.4,
                      "recommended_cv": "MEAL_FR"}
+
+
+def test_offer_detail_uses_manual_contact_and_portal(client: TestClient,
+                                                     session: Session) -> None:
+    client.post("/offers/manual", json={**OFFER, "apply_url": "https://portail.example.org/42"})
+    offer = Offer(canonical_url=OFFER["url"], title="Consultant S&E")
+    session.add(offer)
+    session.flush()
+    session.add(OfferSource(offer_id=offer.id, raw_offer_id=session.scalar(select(RawOffer.id))))
+    session.commit()
+    body = client.get(f"/offers/{offer.id}").json()
+    assert body["contact_emails"] == ["rh@example.org"]
+    assert body["apply_url"] == "https://portail.example.org/42"

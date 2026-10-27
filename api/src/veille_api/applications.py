@@ -28,6 +28,8 @@ class ApplicationIn(BaseModel):
     sent_at: date | None = None
     follow_up_at: date | None = None
     notes: str | None = None
+    gmail_draft_id: str | None = None
+    gmail_thread_id: str | None = None
 
 
 class ApplicationPatch(BaseModel):
@@ -40,6 +42,8 @@ class ApplicationPatch(BaseModel):
     sent_at: date | None = None
     follow_up_at: date | None = None
     notes: str | None = None
+    gmail_draft_id: str | None = None
+    gmail_thread_id: str | None = None
 
 
 class ApplicationOut(ApplicationIn):

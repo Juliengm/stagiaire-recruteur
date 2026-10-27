@@ -156,3 +156,6 @@ class Application(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     sheet: Mapped[str | None] = mapped_column(Text)  # onglet du fichier Excel importé (Madagascar, Lille)
     sheet_row: Mapped[int | None] = mapped_column(Integer)  # colonne N° : clé de réimport
+    # brouillon créé par /candidatures ; l'envoi (par Julien, dans Gmail) se lit dans le fil
+    gmail_draft_id: Mapped[str | None] = mapped_column(Text)
+    gmail_thread_id: Mapped[str | None] = mapped_column(Text)

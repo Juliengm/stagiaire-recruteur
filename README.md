@@ -96,6 +96,12 @@ Ajouter une offre trouvée ailleurs : dans Claude Code, `/offre <lien | PDF | te
 pour les e-mails Gmail libellés `a-ajouter`). Claude lit l'offre, la structure et l'envoie à
 `POST /offers/manual` ; le job `process` la note comme les autres. Voir `.claude/commands/offre.md`.
 
+Préparer les candidatures : `/candidatures` (offres « ça sent bon » sans candidature, ou `/candidatures <id>`).
+Claude choisit le CV, rédige l'e-mail et la lettre de motivation à partir des seuls faits de `cv/` (hors
+dépôt), les contrôle (`scripts/candidature.py verifier`), produit les PDF et dépose un **brouillon Gmail** :
+rien ne part sans que Julien l'envoie lui-même. À l'exécution suivante, les brouillons envoyés passent en
+« postulé » avec une relance à 10 jours. Voir `.claude/commands/candidatures.md`.
+
 Les CV, les données personnelles et les e-mails réels ne sont pas dans ce dépôt.
 
 ## Contacter Julien

@@ -1,12 +1,13 @@
 """Lecture et tri des offres : liste filtrable, statut choisi par Julien."""
 import os
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Annotated, Literal
 
 import yaml
-from db.models import Offer, OfferScore, UserStatus
-from db.rules import Status, zone_sql
+from db.models import Application, Offer, OfferScore, OfferSource, RawOffer, UserStatus
+from db.rules import Status, zone_code, zone_sql
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
@@ -43,6 +44,22 @@ class OfferOut(BaseModel):
     matched_keywords: list[str]
     status: str
     note: str | None
+
+
+class OfferDetailOut(OfferOut):
+    """Tout ce qu'il faut pour préparer une candidature (commande /candidatures)."""
+    description: str | None
+    language: str | None
+    country: str | None
+    city: str | None
+    remote: bool
+    posted_at: date | None
+    contact_emails: list[str]  # saisis à la main, sinon repérés dans la description
+    apply_url: str | None      # portail de candidature (saisie manuelle)
+    application_ids: list[int]  # candidatures déjà enregistrées pour cette offre
+
+
+EMAIL = re.compile(r"[\w.%+-]+@[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}", re.IGNORECASE)
 
 
 class StatusIn(BaseModel):
@@ -125,3 +142,36 @@ def set_status(offer_id: int, body: StatusIn,
         stmt.returning(UserStatus.status, UserStatus.note, UserStatus.updated_at)).one()
     session.commit()
     return StatusOut(offer_id=offer_id, status=row.status, note=row.note, updated_at=row.updated_at)
+
+
+@router.get("/offers/{offer_id}")
+def get_offer(offer_id: int, session: Annotated[Session, Depends(get_session)]) -> OfferDetailOut:
+    offer = session.get(Offer, offer_id)
+    if offer is None:
+        raise HTTPException(404, "offre inconnue")
+    score = session.get(OfferScore, offer_id)
+    status = session.get(UserStatus, offer_id)
+    manual = [r.payload for r in session.scalars(
+        select(RawOffer).join(OfferSource, OfferSource.raw_offer_id == RawOffer.id)
+        .where(OfferSource.offer_id == offer_id, RawOffer.source_id == "saisie_manuelle"))]
+    emails = [p["contact_email"] for p in manual if p.get("contact_email")]
+    for found in EMAIL.findall(offer.description or ""):
+        if found.lower() not in {e.lower() for e in emails}:
+            emails.append(found)
+    return OfferDetailOut(
+        id=offer.id, title=offer.title, organization=offer.organization,
+        location_text=offer.location_text,
+        region=zone_code(offer.country, offer.city, offer.remote),
+        contract_type=offer.contract_type, deadline=offer.deadline,
+        canonical_url=offer.canonical_url, first_seen_at=offer.first_seen_at,
+        final_score=score.final_score if score else None,
+        recommended_cv=score.recommended_cv if score else None,
+        matched_keywords=(score.matched_keywords or []) if score else [],
+        status=status.status if status else "new", note=status.note if status else None,
+        description=offer.description, language=offer.language, country=offer.country,
+        city=offer.city, remote=offer.remote, posted_at=offer.posted_at,
+        contact_emails=emails,
+        apply_url=next((p["apply_url"] for p in manual if p.get("apply_url")), None),
+        application_ids=list(session.scalars(
+            select(Application.id).where(Application.offer_id == offer_id))),
+    )

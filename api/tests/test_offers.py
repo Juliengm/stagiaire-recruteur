@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime, timedelta
 
-from db.models import Offer, OfferScore, Source, UserStatus
+from db.models import Application, Offer, OfferScore, Source, UserStatus
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -104,3 +104,16 @@ def test_health_sources(client: TestClient, session: Session) -> None:
     assert body["ok"]["last_success_at"] and not body["ok"]["failing"] and not body["ok"]["silent"]
     assert body["broken"]["failing"] and body["broken"]["last_error"] == "HTTP 503"
     assert body["quiet"]["silent"] and body["quiet"]["consecutive_empty_runs"] == 2
+
+
+def test_offer_detail_gathers_contacts_and_applications(client: TestClient,
+                                                        session: Session) -> None:
+    offer = _offer(session, "Chargé S&E", 0.6, organization="ONG A", country="Madagascar",
+                   description="Envoyer CV et lettre à recrutement@ong-a.org avant le 15/11.")
+    session.add(Application(offer_id=offer.id, organization="ONG A"))
+    session.commit()
+    body = client.get(f"/offers/{offer.id}").json()
+    assert body["contact_emails"] == ["recrutement@ong-a.org"]
+    assert body["region"] == "mdg" and body["description"].startswith("Envoyer")
+    assert len(body["application_ids"]) == 1 and body["apply_url"] is None
+    assert client.get("/offers/999999").status_code == 404
