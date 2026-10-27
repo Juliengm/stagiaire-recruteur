@@ -55,6 +55,8 @@ scp -r credentials cv <vps>:~/stagiaire-recruteur/
 - `POSTGRES_PASSWORD` (long, aléatoire) et le même dans `VEILLE_DB_URL` ;
 - `DOMAIN`, `LETSENCRYPT_EMAIL`, `INTERFACE_URL=https://<DOMAIN>/` ;
 - `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD` (sans `$`, ex. `openssl rand -base64 24`) ;
+- `CANDIDATURES_FROM` : adresse d'expédition des brouillons de candidature, celle du jeton Gmail
+  (l'API refuse de déposer un brouillon si elles diffèrent) ;
 - `SCHEDULES_RUNNING=true` (sinon Dagster laisse les planifications arrêtées) ;
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `DIGEST_TO` (pas de Mailpit
   en prod) ; `DISCORD_WEBHOOK_URL` si besoin ;
@@ -62,6 +64,15 @@ scp -r credentials cv <vps>:~/stagiaire-recruteur/
 
 Le jeton Gmail se crée sur le poste (`scripts/gmail_auth.py` ouvre le navigateur), puis se copie
 avec `credentials/`.
+
+`cv/` contient les faits (`faits.md`), les termes interdits (`interdits.txt`) et les CV. L'interface
+propose les CV de `cv/pdf/` : ils se génèrent sur le poste (LibreOffice), à refaire et recopier quand un
+CV change.
+
+```bash
+uv run --project api python scripts/candidature.py cv-pdf
+rsync -av cv/ <vps>:~/stagiaire-recruteur/cv/ --exclude candidatures/
+```
 
 ## 3. Premier démarrage
 

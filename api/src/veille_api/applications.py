@@ -28,8 +28,6 @@ class ApplicationIn(BaseModel):
     sent_at: date | None = None
     follow_up_at: date | None = None
     notes: str | None = None
-    gmail_draft_id: str | None = None
-    gmail_thread_id: str | None = None
 
 
 class ApplicationPatch(BaseModel):
@@ -42,14 +40,13 @@ class ApplicationPatch(BaseModel):
     sent_at: date | None = None
     follow_up_at: date | None = None
     notes: str | None = None
-    gmail_draft_id: str | None = None
-    gmail_thread_id: str | None = None
 
 
 class ApplicationOut(ApplicationIn):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    draft_id: int | None = None
     status: str  # type: ignore[assignment]  # valeurs anciennes possibles en base
     sheet: str | None
     sheet_row: int | None

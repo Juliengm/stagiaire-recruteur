@@ -156,6 +156,37 @@ class Application(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     sheet: Mapped[str | None] = mapped_column(Text)  # onglet du fichier Excel importé (Madagascar, Lille)
     sheet_row: Mapped[int | None] = mapped_column(Integer)  # colonne N° : clé de réimport
-    # brouillon créé par /candidatures ; l'envoi (par Julien, dans Gmail) se lit dans le fil
+    draft_id: Mapped[int | None] = mapped_column(ForeignKey("application_drafts.id"))
+
+
+class ApplicationDraft(Base):
+    """Candidature préparée par /candidatures, relue dans l'interface, déposée en brouillon Gmail.
+
+    Statuts : draft (à relire) → deposited (dans Gmail) → sent (envoyée par Julien) | discarded.
+    """
+
+    __tablename__ = "application_drafts"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    offer_id: Mapped[int | None] = mapped_column(ForeignKey("offers.id"))
+    organization: Mapped[str | None] = mapped_column(Text)
+    position: Mapped[str] = mapped_column(Text)
+    language: Mapped[str | None] = mapped_column(Text)
+    segment: Mapped[str | None] = mapped_column(Text)  # tech | institutionnel
+    cv_file: Mapped[str | None] = mapped_column(Text)  # PDF de cv/pdf/
+    recipient: Mapped[str | None] = mapped_column(Text)  # vide : candidature par portail
+    cc: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list, server_default="{}")
+    subject: Mapped[str] = mapped_column(Text)
+    email_html: Mapped[str] = mapped_column(Text)
+    letter_html: Mapped[str] = mapped_column(Text)
+    letter_filename: Mapped[str] = mapped_column(Text)
+    required_documents: Mapped[str | None] = mapped_column(Text)  # pièces à joindre soi-même
+    weaknesses: Mapped[str | None] = mapped_column(Text)  # exigences non couvertes par les faits
+    apply_url: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, default="draft", server_default="draft")
     gmail_draft_id: Mapped[str | None] = mapped_column(Text)
     gmail_thread_id: Mapped[str | None] = mapped_column(Text)
+    deposited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sent_at: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

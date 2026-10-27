@@ -107,12 +107,3 @@ def test_application_errors(client: TestClient, session: Session) -> None:
     app_id = client.post("/applications", json={"organization": "Org"}).json()["id"]
     assert client.patch(f"/applications/{app_id}", json={"status": None}).status_code == 422
 
-
-def test_gmail_ids_round_trip(client: TestClient, session: Session) -> None:
-    created = client.post("/applications", json={
-        "organization": "ONG A", "position": "Chargé S&E", "status": "new",
-        "gmail_draft_id": "r-1", "gmail_thread_id": "t-1"}).json()
-    assert created["gmail_draft_id"] == "r-1" and created["sent_at"] is None
-    patched = client.patch(f"/applications/{created['id']}", json={
-        "status": "applied", "sent_at": "2026-10-28", "follow_up_at": "2026-11-07"}).json()
-    assert patched["gmail_thread_id"] == "t-1" and patched["status"] == "applied"

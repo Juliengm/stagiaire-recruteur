@@ -1,100 +1,95 @@
 ---
-description: Prépare les candidatures (e-mail, lettre de motivation, CV) des offres retenues et les dépose en brouillons Gmail
+description: Prépare les candidatures (e-mail, lettre de motivation, CV) des offres retenues et les range dans l'appli pour relecture
 argument-hint: "[id d'offre …]  (vide : offres « ça sent bon » sans candidature)  [--dev] [--test]"
 ---
 
-Tu prépares des candidatures pour Julien. **Tu n'envoies rien** : tu crées des brouillons Gmail que Julien
-relit et envoie lui-même. Le ton et les faits comptent plus que la vitesse.
+Tu prépares des candidatures pour Julien. **Tu n'envoies rien et tu ne touches pas à Gmail.**
+Tu ranges chaque candidature dans l'appli (vue **Brouillons**). Julien y relit et corrige l'e-mail, la
+lettre et le choix du CV, la dépose dans Gmail d'un clic, puis l'envoie lui-même depuis Gmail.
+Le ton et les faits comptent plus que la vitesse.
 
 Entrée : $ARGUMENTS
 
-- `--dev` : API de dev (sinon production, `--prod` dans toutes les commandes `scripts/api.py`).
-- `--test` : chaque brouillon est adressé à Julien lui-même, pas au recruteur.
+- `--dev` : API de dev (sinon production : `--prod` dans toutes les commandes `scripts/api.py`).
+- `--test` : le destinataire est l'adresse de Julien, sans copie.
 
 Commandes, depuis la racine du dépôt :
 
 ```bash
 API="uv run --project api python scripts/api.py --prod"            # sans --prod si --dev
-OUTIL="uv run --project pipeline --with weasyprint python scripts/candidature.py"
+OUTIL="uv run --project api python scripts/candidature.py"
 ```
 
 ## 0. Lire les sources (une fois par exécution)
 
 - `cv/faits.md` : **seule source de faits**, avec les CV. Tout ce qui n'y est pas n'est pas écrit.
-  L'adresse e-mail qui y figure est l'expéditeur (`--expediteur`).
-- Les CV de `cv/` (`.docx`, lis-les avec `pandoc <fichier> -t plain`) : seulement celui que tu choisis.
+- Le CV choisi (`cv/*.docx`, lis-le avec `pandoc <fichier> -t plain`).
+- `$API GET /cvs` : noms des CV en PDF disponibles dans l'appli (le champ `cv_file`).
 
-## 1. Repérer les candidatures envoyées
+## 1. Mettre à jour les candidatures envoyées
 
-`$API GET /applications` : pour chaque candidature qui a un `gmail_thread_id` et pas de `sent_at`,
-`$OUTIL suivi <gmail_thread_id> --expediteur <adresse>`. Si `etat` vaut `envoye` :
+```bash
+echo '{}' | $API POST /drafts/sync
+```
 
-- `PATCH /applications/<id>` avec `{"status": "applied", "sent_at": <envoye_le>, "follow_up_at": <envoye_le + 10 jours>}` ;
-- `PATCH /offers/<offer_id>/status` avec `{"status": "applied"}`.
-
-Si `etat` vaut `supprime`, Julien a jeté le brouillon : `PATCH /applications/<id>` avec
-`{"status": "ignored", "gmail_draft_id": null, "gmail_thread_id": null, "notes": "brouillon supprimé le <date>"}`.
-
-Signale en une ligne les candidatures passées en « postulé » ou abandonnées.
+Cette commande passe en « postulé » les brouillons que Julien a envoyés depuis Gmail, avec une relance
+à 10 jours. Si le résultat n'est pas nul, signale-le en une ligne.
 
 ## 2. Choisir les offres
 
-Identifiants donnés : ceux-là. Sinon : `$API GET "/offers?status=interesting"`, puis pour chacune
-`$API GET /offers/<id>` ; garde celles dont `application_ids` est vide, cinq au plus, les mieux notées
-d'abord. Une offre qui a déjà une candidature n'est refaite que si Julien a donné son identifiant.
+Identifiants donnés : ceux-là. Sinon :
+1. `$API GET "/offers?status=interesting"`, puis pour chacune `$API GET /offers/<id>` ;
+2. écarte celles qui ont déjà une candidature (`application_ids` non vide) ou un brouillon
+   (`$API GET /drafts`, champ `offer_id`) ;
+3. garde-en cinq au plus, les mieux notées d'abord.
 
-Pour chaque offre, crée le dossier `cv/candidatures/<AAAA-MM-JJ>_<Organisation>_<id>/` (hors dépôt) et
-enregistre la réponse de `GET /offers/<id>` dans `offre.json`.
+Une offre déjà traitée n'est refaite que si Julien a donné son identifiant.
+
+Pour chaque offre, crée le dossier de travail `cv/candidatures/<AAAA-MM-JJ>_<Organisation>_<id>/` (hors
+dépôt) et enregistre la réponse de `GET /offers/<id>` dans `offre.json`.
 
 ## 3. Décider
 
 - **Langue** : celle de l'offre (`language`).
-- **CV** : selon le tableau « Choix du CV » de `cv/faits.md` (profil et langue de l'offre).
+- **CV** : selon le tableau « Choix du CV » de `cv/faits.md`. Si l'offre demande un « CV détaillé » ou
+  des références, prends le CV complet. Retiens le nom du PDF correspondant dans `GET /cvs`.
 - **Segment** :
   - `tech` pour une ESN, un cabinet data ou IA, un éditeur de logiciels ou une start-up ;
   - `institutionnel` pour tout le reste (ONU, bailleurs, ONG, projets, ministères, cabinets d'études,
     grands groupes).
   En cas de doute : `institutionnel`.
-- **Mode** :
-  - `e-mail` si `contact_emails` donne une adresse de candidature et que l'offre ne renvoie pas vers
-    un portail ;
-  - `portail` sinon (`apply_url`, formulaire, Workday, Inspira…). Pour ce mode, prépare la lettre et
-    le CV, mais pas de brouillon.
-  - Plusieurs adresses : prends celle que l'offre désigne pour les candidatures ; mets en copie (`--cc`)
-    celles que l'offre demande de mettre en copie.
+- **Destinataire** : l'adresse que l'offre désigne pour les candidatures (`contact_emails`) ; en copie
+  (`cc`), celles que l'offre demande de mettre en copie. Une candidature par portail (`apply_url`,
+  formulaire, Workday, Inspira…) n'a pas de destinataire : `recipient` vide, `apply_url` renseigné.
 - **Pièces exigées** : relève tout ce que l'offre demande en plus du CV et de la lettre (diplômes,
-  attestations, références, formulaire). Tu ne peux pas les fournir : liste-les dans le compte rendu.
-  Si l'offre demande un « CV détaillé » ou des références, prends le CV complet.
+  attestations, références, formulaire). Tu ne peux pas les fournir : elles vont dans
+  `required_documents`.
+- **Points faibles** : les exigences de l'offre que les faits ne couvrent pas (années d'expérience dans
+  un domaine précis, langue, diplôme), en une ou deux lignes, dans `weaknesses`. Sois franc : c'est ce
+  qui aide Julien à décider s'il dépose.
 
-## 4. Rédiger
+## 4. Rédiger (en HTML simple)
 
-Écris trois fichiers dans le dossier de l'offre : `objet.txt`, `email.txt` (texte brut) et
-`lettre.md`.
+Écris `email.html` et `lettre.html` dans le dossier de l'offre. N'utilise que les balises suivantes :
+`<p>`, `<br>`, `<strong>`, `<em>`, `<ul>`/`<ol>`/`<li>`, `<a href>`. Pour aligner un paragraphe à droite,
+utilise `style="text-align:right"`. C'est tout ce que l'éditeur de l'appli conserve.
 
-**Lettre de motivation** (`lettre.md`), sérieuse et signée par Julien, quel que soit le segment :
+**Lettre de motivation** : sérieuse et signée par Julien, quel que soit le segment. Structure :
 
-```markdown
-Julien Gasser Morlay
-Antananarivo, Madagascar · <téléphone> · <e-mail>
-
-> <Organisation>
-> <Service ou lieu, s'ils sont connus>
-
-<p class="date"><Ville>, le <date du jour en toutes lettres></p>
-
-**Objet : candidature au poste de <intitulé exact> <(référence de l'offre, s'il y en a une)>**
-
-Madame, Monsieur,
-
-<3 ou 4 paragraphes>
-
-Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
-
-Julien Gasser Morlay
+```html
+<p>Julien Gasser Morlay<br>Antananarivo, Madagascar · <téléphone> · <e-mail></p>
+<p></p>
+<p style="text-align:right"><Organisation><br><Service ou lieu, s'ils sont connus></p>
+<p></p>
+<p style="text-align:right"><Ville>, le <date du jour en toutes lettres></p>
+<p><strong>Objet : candidature au poste de <intitulé exact> (<référence de l'offre, s'il y en a une>)</strong></p>
+<p>Madame, Monsieur,</p>
+<p>…3 ou 4 paragraphes…</p>
+<p>Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.</p>
+<p>Julien Gasser Morlay</p>
 ```
 
-(En anglais : `Dear Hiring Manager,` … `Yours faithfully,`.) Les blocs entre chevrons sont à remplir
-à partir de `cv/faits.md` et de l'offre.
+(En anglais : `Dear Hiring Manager,` … `Yours faithfully,`.)
 
 Contenu des paragraphes :
 
@@ -111,13 +106,14 @@ Règles :
 - Pas de superlatifs ni de formules creuses (« passionné », « dynamique », « je suis convaincu que »).
 - Les formulations imposées de `cv/faits.md` s'appliquent, notamment sur la réinstallation.
 
-**E-mail** (`objet.txt` et `email.txt`) :
+**Objet de l'e-mail** : **celui que l'offre impose, au caractère près**, s'il y en a un. Sinon
+`Candidature — <intitulé exact> — Julien Gasser Morlay` (ajoute la référence de l'offre si elle existe).
 
-- Objet : **celui que l'offre impose, au caractère près**, s'il y en a un. Sinon
-  `Candidature — <intitulé exact> — Julien Gasser Morlay` (ajoute la référence de l'offre si elle existe).
+**E-mail** (`email.html`), un `<p>` par paragraphe, la signature de `cv/faits.md` à la fin :
+
 - Segment `institutionnel` : sobre, signé Julien, 5 à 8 lignes. Le poste, deux phrases sur ce qu'il
-  apporte, la mention des pièces jointes (CV et lettre de motivation), la signature de `cv/faits.md`.
-  Le lien GitHub seulement si le poste a une composante data.
+  apporte, la mention des pièces jointes (CV et lettre de motivation). Le lien GitHub seulement si le
+  poste a une composante data.
 - Segment `tech` : le stagiaire écrit. Structure :
 
   > Bonjour <prénom du contact, sinon « Madame, Monsieur »>,
@@ -136,53 +132,46 @@ Règles :
   > Bonne journée,
   > Le stagiaire recruteur de Julien (non rémunéré, nourri au cron)
 
-## 5. Vérifier et produire les PDF
+## 5. Pré-contrôler
 
 ```bash
-$OUTIL verifier --offre <dossier>/offre.json --objet "$(cat <dossier>/objet.txt)" \
-  --email <dossier>/email.txt --lettre <dossier>/lettre.md
-$OUTIL lettre <dossier>/lettre.md "<dossier>/LM_Julien_Gasser_Morlay_<Organisation>.pdf"
-$OUTIL cv-pdf cv/<CV choisi>.docx
+$OUTIL verifier --offre <dossier>/offre.json --objet "<objet>" --email <dossier>/email.html \
+  --lettre <dossier>/lettre.html --cv cv/pdf/<CV choisi>.pdf
+$OUTIL lettre <dossier>/lettre.html <dossier>/apercu.pdf
 ```
 
-- `verifier` signale un terme interdit, l'organisation ou l'intitulé absents, ou un nombre qu'on ne
-  trouve ni dans les faits, ni dans les CV, ni dans l'offre. Corrige et relance jusqu'à « aucun problème ».
-  Si un nombre signalé est légitime (une date, un numéro de référence de l'offre), dis-le à Julien au
-  lieu de forcer.
-- `lettre` sort en erreur si le PDF dépasse une page : raccourcis.
-- `<Organisation>` dans les noms de fichiers : lettres et chiffres sans accents, séparés par `_`.
+- `verifier` signale :
+  - `BLOQUANT` : un terme interdit ;
+  - `À VÉRIFIER` : l'organisation ou l'intitulé absents, ou un nombre qu'on ne trouve ni dans les
+    faits, ni dans le CV, ni dans l'offre.
+  Corrige et relance. Si un avertissement est légitime (numéro de référence de l'offre, date), garde le
+  texte et dis-le dans le compte rendu.
+- `lettre` sort en erreur si la lettre dépasse une page : raccourcis.
 
-## 6. Déposer le brouillon (mode e-mail)
+L'appli refait ces contrôles au moment du dépôt, sur le texte que Julien aura modifié.
 
-```bash
-$OUTIL brouillon --expediteur <e-mail de cv/faits.md> --a <contact> [--cc <copie> …] \
-  --objet "$(cat <dossier>/objet.txt)" --corps <dossier>/email.txt --pj <CV en PDF> <LM en PDF>
-```
+## 6. Ranger le brouillon dans l'appli
 
-Avec `--test`, `--a` est l'adresse de Julien, sans `--cc`. Le script refuse si le jeton Gmail n'est pas celui de
-l'expéditeur : arrête-toi et dis-le.
-
-## 7. Enregistrer la candidature
-
-`$API POST /applications` avec :
+Écris le JSON dans `<dossier>/brouillon.json`, puis `$API POST /drafts < <dossier>/brouillon.json` :
 
 ```json
-{"offer_id": <id>, "organization": "...", "position": "<intitulé>", "contact": "<adresse ou lien du portail>",
- "cv_sent": "<nom du CV>", "status": "new", "notes": "brouillon Gmail du <date>" | "portail : <lien>",
- "gmail_draft_id": "...", "gmail_thread_id": "..."}
+{"offer_id": <id>, "organization": "...", "position": "<intitulé exact>", "language": "fr",
+ "segment": "institutionnel", "cv_file": "<PDF de GET /cvs>", "recipient": "<adresse ou null>",
+ "cc": ["..."], "subject": "...", "email_html": "...", "letter_html": "...",
+ "letter_filename": "LM_Julien_Gasser_Morlay_<Organisation>.pdf",
+ "required_documents": "..." , "weaknesses": "...", "apply_url": "<lien du portail ou null>"}
 ```
 
-En mode portail, `gmail_*` reste vide. Julien passera la candidature en « postulé » dans l'interface
-après avoir déposé son dossier. En mode `--test`, n'enregistre rien.
+`<Organisation>` dans le nom de fichier : lettres et chiffres sans accents, séparés par `_`.
 
-## 8. Rendre compte
+## 7. Rendre compte
 
 Une ligne par offre :
 
-> **Intitulé** — Organisation · date limite · CV · segment · brouillon Gmail prêt (ou : portail <lien>, fichiers dans <dossier>)
+> **Intitulé** — Organisation · date limite · CV · segment · e-mail à … (ou : portail <lien>)
 > Pièces à ajouter toi-même : … (s'il y en a)
-> Points faibles par rapport à l'offre : … (exigences que les faits ne couvrent pas, en une ligne)
+> Points faibles : … (s'il y en a)
 
-Puis le lien https://mail.google.com/mail/u/0/#drafts.
-
-Termine en rappelant que rien n'est parti : Julien relit et envoie chaque brouillon lui-même.
+Termine par le lien de la vue Brouillons de l'appli (`INTERFACE_URL` de `.env.prod`, suivi de
+`#/brouillons`). Rappelle que rien n'est parti : Julien relit, dépose dans Gmail depuis l'appli, puis
+envoie lui-même depuis Gmail.

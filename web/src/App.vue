@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const views = { 1: '/offres', 2: '/candidatures', 3: '/sources' }
+const views = { 1: '/offres', 2: '/candidatures', 3: '/sources', 4: '/brouillons' }
 
 function onKey(e) {
   if (e.altKey && views[e.key]) {
@@ -22,6 +22,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <RouterLink to="/offres">Offres <kbd>Alt+1</kbd></RouterLink>
       <RouterLink to="/candidatures">Candidatures <kbd>Alt+2</kbd></RouterLink>
       <RouterLink to="/sources">Sources <kbd>Alt+3</kbd></RouterLink>
+      <RouterLink to="/brouillons">Brouillons <kbd>Alt+4</kbd></RouterLink>
     </nav>
   </header>
   <main><RouterView /></main>

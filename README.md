@@ -98,9 +98,12 @@ pour les e-mails Gmail libellés `a-ajouter`). Claude lit l'offre, la structure 
 
 Préparer les candidatures : `/candidatures` (offres « ça sent bon » sans candidature, ou `/candidatures <id>`).
 Claude choisit le CV, rédige l'e-mail et la lettre de motivation à partir des seuls faits de `cv/` (hors
-dépôt), les contrôle (`scripts/candidature.py verifier`), produit les PDF et dépose un **brouillon Gmail** :
-rien ne part sans que Julien l'envoie lui-même. À l'exécution suivante, les brouillons envoyés passent en
-« postulé » avec une relance à 10 jours. Voir `.claude/commands/candidatures.md`.
+dépôt), les pré-contrôle et les range dans la vue **Brouillons**. Julien y corrige l'e-mail et la lettre
+(éditeur WYSIWYG), change de CV si besoin, prévisualise la lettre en PDF, puis clique « Déposer dans
+Gmail » : l'API refait les contrôles (termes interdits, une page, chiffres absents des faits) et crée le
+brouillon avec le CV et la lettre en pièces jointes. **L'API ne sait pas envoyer** (un test le vérifie) :
+Julien envoie lui-même depuis Gmail. Les brouillons envoyés passent ensuite en « postulé », avec une
+relance à 10 jours. Voir `.claude/commands/candidatures.md`.
 
 Les CV, les données personnelles et les e-mails réels ne sont pas dans ce dépôt.
 

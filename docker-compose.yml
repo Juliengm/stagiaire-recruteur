@@ -47,6 +47,8 @@ services:
   api:
     build: {context: ., dockerfile: api/Dockerfile}
     env_file: .env
+    # faits, termes interdits et CV en PDF (brouillons de candidature) ; jeton Gmail
+    volumes: ["./credentials:/app/credentials:ro", "./cv:/app/cv:ro"]
     depends_on: {migrate: {condition: service_completed_successfully}}
     restart: unless-stopped
 

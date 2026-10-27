@@ -10,7 +10,10 @@ async function request(method, path, body) {
   const data = resp.headers.get('content-type')?.includes('json') ? await resp.json() : null
   if (!resp.ok) {
     const detail = data?.detail
-    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail ?? resp.statusText))
+    const error = new Error(typeof detail === 'string' ? detail : JSON.stringify(detail ?? resp.statusText))
+    error.status = resp.status
+    error.detail = detail  // ex. contrôles refusés au dépôt : { blocking, warnings }
+    throw error
   }
   return data
 }
@@ -28,5 +31,8 @@ export const api = {
 export const STATUSES = {
   new: 'nouvelle', interesting: 'intéressante', applied: 'candidature envoyée',
   ghosted: 'sans réponse', ignored: 'écartée', rejected: 'refusée', interview: 'entretien',
+}
+export const DRAFT_STATUSES = {
+  draft: 'à relire', deposited: 'dans Gmail', sent: 'envoyée', discarded: 'abandonnée',
 }
 export const REGIONS = { mdg: 'Madagascar', lille: 'Lille', remote: 'Télétravail', other: 'Autres' }

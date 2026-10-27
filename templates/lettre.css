@@ -1,12 +1,14 @@
-/* Lettre de motivation (scripts/candidature.py, rendu WeasyPrint) : une page A4, sobre. */
+/* Lettre de motivation (rendu WeasyPrint, API et scripts/candidature.py) : une page A4, sobre.
+   HTML produit par l'éditeur de l'interface : paragraphes, gras, listes, alignement en ligne
+   (destinataire et date à droite : style="text-align:right"). */
 @page { size: A4; margin: 2cm 2.2cm; }
 body { font-family: "Liberation Sans", "Helvetica", "Arial", sans-serif; font-size: 11pt;
        line-height: 1.42; color: #1a1a1a; }
 p { margin: 0 0 0.65em; text-align: justify; hyphens: auto; }
-/* bloc expéditeur (premier paragraphe) et destinataire (blockquote), puis date et objet */
-body > p:first-child { text-align: left; margin-bottom: 1.4em; }
-blockquote { margin: 0 0 1.4em auto; width: 45%; text-align: left; }
-blockquote p { text-align: left; margin: 0; hyphens: manual; }
-p.date, .date { text-align: right; }
+p[style*="right"] { hyphens: manual; }
+p:empty { min-height: 1em; }
+ul, ol { margin: 0 0 0.65em; padding-left: 1.4em; }
+li p { margin: 0; }
 strong { font-weight: 600; }
-h1, h2 { font-size: 11pt; margin: 1em 0 0.6em; }
+a { color: inherit; }
+h2, h3 { font-size: 11pt; margin: 1em 0 0.6em; }
