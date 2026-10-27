@@ -6,7 +6,7 @@
     lettre <lettre.md> <lettre.pdf>        lettre en PDF (templates/lettre.css), une page au plus
     verifier --offre offre.json --objet … --email corps.txt --lettre lettre.md
     brouillon --expediteur … --a … [--cc …] --objet … --corps corps.txt --pj fichier.pdf …
-    suivi <thread_id>                      envoyé ? (message du fil marqué SENT)
+    suivi <thread_id>                      envoye, en_attente ou supprime (fil disparu)
 
 N'envoie jamais rien : le script crée des brouillons, Julien les envoie lui-même depuis Gmail.
 Tout ce qu'il produit de personnel reste dans cv/ (hors dépôt).
@@ -97,9 +97,16 @@ def draft(args: argparse.Namespace) -> dict[str, str]:
 
 
 def follow(args: argparse.Namespace) -> dict[str, str | None]:
+    from googleapiclient.errors import HttpError
+
     service = gmail(args.expediteur)
-    thread = service.users().threads().get(userId="me", id=args.thread_id,
-                                           format="minimal").execute()
+    try:
+        thread = service.users().threads().get(userId="me", id=args.thread_id,
+                                               format="minimal").execute()
+    except HttpError as exc:
+        if exc.resp.status == 404:  # brouillon supprimé par Julien : le fil n'existe plus
+            return {"etat": "supprime", "envoye_le": None}
+        raise
     sent = [m for m in thread.get("messages", []) if "SENT" in m.get("labelIds", [])]
     if not sent:
         return {"etat": "en_attente", "envoye_le": None}

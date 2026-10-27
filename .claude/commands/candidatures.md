@@ -32,7 +32,10 @@ OUTIL="uv run --project pipeline --with weasyprint python scripts/candidature.py
 - `PATCH /applications/<id>` avec `{"status": "applied", "sent_at": <envoye_le>, "follow_up_at": <envoye_le + 10 jours>}` ;
 - `PATCH /offers/<offer_id>/status` avec `{"status": "applied"}`.
 
-Signale en une ligne les candidatures passées en « postulé ».
+Si `etat` vaut `supprime`, Julien a jeté le brouillon : `PATCH /applications/<id>` avec
+`{"status": "ignored", "gmail_draft_id": null, "gmail_thread_id": null, "notes": "brouillon supprimé le <date>"}`.
+
+Signale en une ligne les candidatures passées en « postulé » ou abandonnées.
 
 ## 2. Choisir les offres
 
