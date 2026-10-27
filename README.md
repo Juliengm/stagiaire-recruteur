@@ -92,6 +92,10 @@ import du fichier Excel) et **Sources** (état, activation, « lancer maintenant
 son API GraphQL). En développement : `cd web && npm install && npm run dev` (l'API de Docker est jointe par le
 proxy de Vite).
 
+Ajouter une offre trouvée ailleurs : dans Claude Code, `/offre <lien | PDF | texte collé>` (ou `/offre` seul
+pour les e-mails Gmail libellés `a-ajouter`). Claude lit l'offre, la structure et l'envoie à
+`POST /offers/manual` ; le job `process` la note comme les autres. Voir `.claude/commands/offre.md`.
+
 Les CV, les données personnelles et les e-mails réels ne sont pas dans ce dépôt.
 
 ## Contacter Julien

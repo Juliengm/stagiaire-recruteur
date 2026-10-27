@@ -18,6 +18,7 @@ SOURCES.md
 SPEC.md
 prompts/
 .vscode/
+.claude/settings.local.json
 # production : sauvegardes de la base (données personnelles), fichier d'environnement du serveur
 backups/
 .env.prod

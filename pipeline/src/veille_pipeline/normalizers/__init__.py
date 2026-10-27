@@ -4,6 +4,7 @@ from veille_pipeline.models import Offer
 from veille_pipeline.normalizers.csv_dataset import normalize_csv_dataset
 from veille_pipeline.normalizers.gmail_alert import normalize_gmail_alert
 from veille_pipeline.normalizers.html_list import normalize_html_list
+from veille_pipeline.normalizers.manual import normalize_manual
 from veille_pipeline.normalizers.pdf_page import normalize_pdf_page
 from veille_pipeline.normalizers.reliefweb import normalize_reliefweb
 from veille_pipeline.normalizers.rss import normalize_rss
@@ -23,4 +24,5 @@ NORMALIZERS: dict[str, Callable[[dict, dict], Offer]] = {
     "workable": normalize_workable,
     "smartrecruiters": normalize_smartrecruiters,
     "sitemap_jsonld": normalize_sitemap_jsonld,
+    "manual": normalize_manual,  # pas de connecteur : offres ajoutées par l'API
 }
