@@ -74,15 +74,10 @@ uv run python ../scripts/api.py --prod --attendre GET /offers/manual/<external_i
 Si `duplicate_of` n'est pas nul, l'offre doublonne une offre déjà connue : utilise
 `duplicate_of` comme identifiant.
 
-## 5. Marquer l'offre et rendre compte
+## 5. Rendre compte
 
-L'utilisateur l'a choisie : passe-la en « ça sent bon ».
-
-```bash
-echo '{"status": "interesting"}' | uv run python ../scripts/api.py --prod PATCH /offers/<id>/status
-```
-
-Termine par une fiche courte par offre :
+Le pipeline passe d'office les offres saisies à la main en « ça sent bon » : elles restent
+affichées quel que soit leur score. Termine par une fiche courte par offre :
 
 > **Intitulé** — Organisation · Lieu · type de contrat · date limite (ou « pas de date limite »)
 > Score 0,xx · CV conseillé : … · Candidature : e-mail à … / portail … / à préciser

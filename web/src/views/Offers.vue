@@ -90,7 +90,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <option value="">toutes les zones</option>
       <option v-for="(label, code) in REGIONS" :key="code" :value="code">{{ label }}</option>
     </select>
-    <label>score ≥ <input v-model="filters.min_score" type="number" step="0.05" min="0" max="1" style="width: 5em" /></label>
+    <label>score ≥ <input v-model="filters.min_score" type="number" step="0.05" min="0" max="1" style="width: 5em" placeholder="seuil" title="Vide : seuil de config/scoring.yaml (les offres avec un statut restent affichées). 0 : tout afficher." /></label>
     <input ref="search" v-model="filters.q" type="search" placeholder="Rechercher (/)" />
     <label><input v-model="filters.include_expired" type="checkbox" /> afficher les offres expirées</label>
     <span class="hint">{{ offers.length }} offre(s)</span>

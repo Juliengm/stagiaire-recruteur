@@ -32,11 +32,22 @@ def _seed(session: Session) -> dict[str, int]:
 def test_list_excludes_duplicates_and_sorts_by_score(client: TestClient, session: Session) -> None:
     ids = _seed(session)
     body = client.get("/offers").json()
-    assert [o["id"] for o in body] == [ids["mdg"], ids["lille"], ids["remote"], ids["unscored"]]
+    assert [o["id"] for o in body] == [ids["mdg"], ids["lille"], ids["remote"]]  # sans score : masquée
     first = body[0]
     assert first["region"] == "mdg" and first["recommended_cv"] == "NP5_FR"
     assert first["matched_keywords"] == ["suivi-évaluation"] and first["status"] == "new"
-    assert body[-1]["final_score"] is None and body[-1]["region"] == "other"
+
+
+def test_offers_below_threshold_hidden_unless_given_a_status(client: TestClient,
+                                                            session: Session) -> None:
+    ids = _seed(session)
+    low = _offer(session, "Assistant passation", 0.1)
+    kept = _offer(session, "Ajoutée à la main", 0.1)
+    session.add(UserStatus(offer_id=kept.id, status="interesting"))
+    session.commit()
+    shown = [o["id"] for o in client.get("/offers").json()]
+    assert low.id not in shown and kept.id in shown and ids["remote"] in shown  # 0,2 = seuil
+    assert low.id in [o["id"] for o in client.get("/offers", params={"min_score": 0}).json()]
 
 
 def test_filters(client: TestClient, session: Session) -> None:

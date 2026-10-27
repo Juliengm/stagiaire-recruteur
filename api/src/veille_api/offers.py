@@ -1,7 +1,10 @@
 """Lecture et tri des offres : liste filtrable, statut choisi par Julien."""
+import os
 from datetime import date, datetime
+from pathlib import Path
 from typing import Annotated, Literal
 
+import yaml
 from db.models import Offer, OfferScore, UserStatus
 from db.rules import Status, zone_sql
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -15,6 +18,14 @@ from veille_api.db import get_session
 router = APIRouter(tags=["offres"])
 
 Region = Literal["mdg", "lille", "remote", "other"]
+
+SCORING_FILE = Path(os.environ.get(
+    "SCORING_FILE", Path(__file__).resolve().parents[3] / "config" / "scoring.yaml"))
+
+
+def score_threshold() -> float:
+    """Seuil de `config/scoring.yaml`, le même que celui du récapitulatif."""
+    return float(yaml.safe_load(SCORING_FILE.read_text())["threshold"])
 
 
 class OfferOut(BaseModel):
@@ -58,7 +69,9 @@ def list_offers(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[OfferOut]:
     """Offres hors doublons, les mieux notées d'abord ; sans statut enregistré = « new ».
-    Les offres dont la date limite est passée sont masquées sauf `include_expired=true`."""
+    Les offres dont la date limite est passée sont masquées sauf `include_expired=true`.
+    Sans `min_score`, les offres sans statut sous le seuil de scoring.yaml sont masquées ;
+    `min_score=0` montre toutes les offres notées."""
     region_col = zone_sql(Offer.country, Offer.city, Offer.remote).label("region")
     status_col = func.coalesce(UserStatus.status, "new").label("status")
     stmt = (
@@ -75,6 +88,8 @@ def list_offers(
         stmt = stmt.where(region_col == region)
     if min_score is not None:
         stmt = stmt.where(OfferScore.final_score >= min_score)
+    else:
+        stmt = stmt.where(or_(status_col != "new", OfferScore.final_score >= score_threshold()))
     if q:
         pattern = f"%{q}%"
         stmt = stmt.where(or_(Offer.title.ilike(pattern), Offer.organization.ilike(pattern),

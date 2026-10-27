@@ -2,7 +2,16 @@ import os
 from pathlib import Path
 
 import dagster as dg
-from db.models import CvProfile, Offer, OfferEmbedding, OfferScore, OfferSource, RawOffer, Source
+from db.models import (
+    CvProfile,
+    Offer,
+    OfferEmbedding,
+    OfferScore,
+    OfferSource,
+    RawOffer,
+    Source,
+    UserStatus,
+)
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -49,6 +58,11 @@ def offers_normalized(context: dg.AssetExecutionContext) -> dg.MaterializeResult
             ).returning(Offer.id)).scalar_one()
             session.execute(insert(OfferSource).values(offer_id=offer_id, raw_offer_id=raw.id)
                             .on_conflict_do_nothing())
+            if src.kind == "manual":  # choisie par Julien : « ça sent bon », quel que soit le score
+                status = insert(UserStatus).values(offer_id=offer_id, status="interesting")
+                session.execute(status.on_conflict_do_update(
+                    index_elements=[UserStatus.offer_id], set_={"status": "interesting"},
+                    where=UserStatus.status == "new"))
             created += 1
         session.commit()
     return dg.MaterializeResult(metadata={"traitées": created, "ignorées": skipped})

@@ -5,5 +5,6 @@ COPY api/pyproject.toml api/README.md ./api/
 COPY api/src ./api/src
 RUN cd api && uv pip install --system -e .
 COPY db ./db
+COPY config ./config
 ENV PYTHONPATH=/app
 CMD ["uvicorn", "veille_api.main:app", "--host", "0.0.0.0", "--port", "8000"]

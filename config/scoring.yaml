@@ -1,5 +1,6 @@
-# Mots-clés, poids et seuil du récapitulatif. Modifiable sans toucher au code.
-threshold: 0.15          # final_score minimal pour apparaître dans le récapitulatif
+# Mots-clés, poids et seuil des offres retenues. Modifiable sans toucher au code.
+threshold: 0.2           # final_score minimal pour le récapitulatif et l'interface (en dessous : bruit,
+                         # constaté à l'usage) ; une offre qui a reçu un statut reste affichée
 rule_score_cap: 20       # rule_score ramené à [0,1] par min(score/cap, 1)
 title_multiplier: 3      # un mot-clé du titre vaut 3× son poids
 description_cap: 1       # points maximum venant de la description (tous profils confondus)
