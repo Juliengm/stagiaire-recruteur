@@ -21,8 +21,10 @@ router = APIRouter(tags=["offres"])
 
 MANUAL_SOURCE = "saisie_manuelle"
 
+# spontaneous : candidature spontanée, sans annonce ; la description porte alors la recherche sur
+# l'organisation et l'angle proposé
 Contract = Literal["cdi", "cdd", "consultancy", "roster", "volunteer", "internship", "tender",
-                   "unknown"]
+                   "spontaneous", "unknown"]
 
 
 class ManualOfferIn(BaseModel):

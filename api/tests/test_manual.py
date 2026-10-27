@@ -35,6 +35,17 @@ def test_reports_offer_already_found_by_another_source(client: TestClient,
     assert client.post("/offers/manual", json=OFFER).json()["offer_id"] == offer_id
 
 
+def test_spontaneous_angles_for_one_organization_stay_distinct(client: TestClient) -> None:
+    # sans `url` (le formulaire de candidature spontanée est commun à toute l'entreprise)
+    angle = {"title": "Chargé de données E&S / ESG", "organization": "Groupe X",
+             "contract_type": "spontaneous", "description": "Recherche sur le groupe et angle.",
+             "apply_url": "https://recrute.example.mg/apply/sp/groupe-x"}
+    first = client.post("/offers/manual", json=angle)
+    second = client.post("/offers/manual", json={**angle, "title": "Responsable data et reporting"})
+    assert first.status_code == second.status_code == 201
+    assert first.json()["external_id"] != second.json()["external_id"]
+
+
 def test_rejects_unknown_contract_and_empty_description(client: TestClient) -> None:
     assert client.post("/offers/manual", json={**OFFER, "contract_type": "freelance"}).status_code == 422
     assert client.post("/offers/manual", json={**OFFER, "description": ""}).status_code == 422

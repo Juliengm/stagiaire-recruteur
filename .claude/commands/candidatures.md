@@ -68,6 +68,13 @@ dépôt) et enregistre la réponse de `GET /offers/<id>` dans `offre.json`.
   un domaine précis, langue, diplôme), en une ou deux lignes, dans `weaknesses`. Sois franc : c'est ce
   qui aide Julien à décider s'il dépose.
 
+**Candidature spontanée** (`contract_type` = `spontaneous`) : il n'y a pas d'annonce. La description
+de l'offre contient la recherche sur l'organisation et le rôle proposé, et
+`cv/candidatures/entreprises/<Organisation>.md` contient la recherche complète. Lis les deux. Le
+destinataire est l'adresse RH trouvée (`contact_emails`), sinon le formulaire (`apply_url`). Si ni l'une
+ni l'autre n'existe, laisse `recipient` et `apply_url` vides et dis-le dans `required_documents`
+(« destinataire à trouver »).
+
 ## 4. Rédiger (en HTML simple)
 
 Écris `email.html` et `lettre.html` dans le dossier de l'offre. N'utilise que les balises suivantes :
@@ -91,6 +98,8 @@ utilise `style="text-align:right"`. C'est tout ce que l'éditeur de l'appli cons
 
 (En anglais : `Dear Hiring Manager,` … `Yours faithfully,`.)
 
+Candidature spontanée : `Objet : candidature spontanée — <rôle proposé>`, sans référence.
+
 Contenu des paragraphes :
 
 1. **Le poste et pourquoi lui.** Une phrase d'accroche liée à l'offre, pas une banalité.
@@ -100,6 +109,12 @@ Contenu des paragraphes :
 4. **Disponibilité et zone**, avec la formulation de `cv/faits.md`. Pour une offre à Lille, cite le lien
    avec Lille.
 
+Candidature spontanée : le paragraphe 1 part d'un fait précis et daté de la recherche (un projet,
+un engagement du rapport RSE, une exigence d'un bailleur), pas d'une annonce. Le paragraphe 3
+propose le rôle et ce qu'il changerait concrètement pour l'organisation. Termine par une demande
+d'échange plutôt que par une candidature à un poste. Un chiffre de l'entreprise n'est cité que s'il
+figure dans la description de l'offre.
+
 Règles :
 
 - 250 à 330 mots ; une page au rendu.
@@ -108,6 +123,7 @@ Règles :
 
 **Objet de l'e-mail** : **celui que l'offre impose, au caractère près**, s'il y en a un. Sinon
 `Candidature — <intitulé exact> — Julien Gasser Morlay` (ajoute la référence de l'offre si elle existe).
+Candidature spontanée : `Candidature spontanée — <rôle proposé> — Julien Gasser Morlay`.
 
 **E-mail** (`email.html`), un `<p>` par paragraphe, la signature de `cv/faits.md` à la fin :
 
@@ -131,6 +147,9 @@ Règles :
   >
   > Bonne journée,
   > Le stagiaire recruteur de Julien (non rémunéré, nourri au cron)
+
+  Candidature spontanée : remplace « J'ai trouvé la vôtre, il l'a lue » par « Il n'y a pas d'annonce :
+  je me suis renseigné sur <organisation>, il a lu ce que j'ai trouvé ».
 
 ## 5. Pré-contrôler
 

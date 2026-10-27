@@ -95,6 +95,10 @@ proxy de Vite).
 Ajouter une offre trouvée ailleurs : dans Claude Code, `/offre <lien | PDF | texte collé>` (ou `/offre` seul
 pour les e-mails Gmail libellés `a-ajouter`). Claude lit l'offre, la structure et l'envoie à
 `POST /offers/manual` ; le job `process` la note comme les autres. Voir `.claude/commands/offre.md`.
+Candidature spontanée : `/offre spontanée <entreprise ou lien>` (option `--angle ESG`, `--angle data`…).
+Claude se renseigne sur l'entreprise (site, rapport RSE / ESG, bailleurs, actualité, offres en cours),
+propose deux ou trois angles appuyés sur les faits de `cv/`, puis crée une offre `spontaneous` par angle
+retenu.
 
 Préparer les candidatures : `/candidatures` (offres « ça sent bon » sans candidature, ou `/candidatures <id>`).
 Claude choisit le CV, rédige l'e-mail et la lettre de motivation à partir des seuls faits de `cv/` (hors
@@ -104,6 +108,11 @@ Gmail » : l'API refait les contrôles (termes interdits, une page, chiffres abs
 brouillon avec le CV et la lettre en pièces jointes. **L'API ne sait pas envoyer** (un test le vérifie) :
 Julien envoie lui-même depuis Gmail. Les brouillons envoyés passent ensuite en « postulé », avec une
 relance à 10 jours. Voir `.claude/commands/candidatures.md`.
+
+Préparer un entretien : `/entretien <id>`. Claude cherche ce qu'il faut savoir de l'organisation pour ce
+poste (rapport ESG pour un poste ESG, outillage et projets data pour un poste data…) et écrit, à côté de la
+candidature dans `cv/`, un dossier : l'organisation, les questions probables avec des réponses tirées des
+faits, les questions à poser et les sources.
 
 Les CV, les données personnelles et les e-mails réels ne sont pas dans ce dépôt.
 

@@ -52,6 +52,7 @@ ZONE_ORDER = list(ZONES.values())
 CONTRACT_LABELS = {
     "cdi": "CDI", "cdd": "CDD", "consultancy": "consultance", "roster": "roster",
     "volunteer": "volontariat", "internship": "stage", "tender": "appel d'offres",
+    "spontaneous": "candidature spontanée",
     "unknown": "contrat non précisé",
 }
 
