@@ -97,3 +97,15 @@ def test_teamtailor_rss_blue_ventures(fixtures):
     offer = normalize_rss(raws[0].payload, src)
     assert offer.title and offer.description and "Closing date" in offer.description
     assert str(offer.deadline) == "2026-11-03"
+
+
+def test_lille_bonus_covers_the_metropolis():
+    from db.rules import is_lille, zone_code
+
+    cfg = load_scoring_config(__import__("pathlib").Path(__file__).parents[2] / "config/scoring.yaml")
+    base = {"title": "Monitoring Evaluation Lead", "description": "", "country": "France"}
+    metro = score_offer({**base, "city": "Villeneuve-d'Ascq"}, cfg)
+    elsewhere = score_offer({**base, "city": "Lyon"}, cfg)
+    assert metro.rule_score - elsewhere.rule_score == cfg["location_bonus"]["lille"]
+    assert is_lille("Marcq-en-Barœul") and not is_lille("Lillers")
+    assert zone_code("France", "Villeneuve-d’Ascq", False) == "lille"

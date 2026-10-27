@@ -117,3 +117,12 @@ def test_offer_detail_gathers_contacts_and_applications(client: TestClient,
     assert body["region"] == "mdg" and body["description"].startswith("Envoyer")
     assert len(body["application_ids"]) == 1 and body["apply_url"] is None
     assert client.get("/offers/999999").status_code == 404
+
+
+def test_lille_region_covers_the_metropolis(client: TestClient, session: Session) -> None:
+    near = [_offer(session, title, 0.5, city=city).id for title, city in
+            (("McCain", "Villeneuve-d’Ascq"), ("Agence", "Marcq-en-Barœul"), ("Ville", "LILLE"))]
+    far = _offer(session, "Ailleurs", 0.5, city="Lillers").id
+    session.commit()
+    got = [o["id"] for o in client.get("/offers", params={"region": "lille"}).json()]
+    assert sorted(got) == sorted(near) and far not in got

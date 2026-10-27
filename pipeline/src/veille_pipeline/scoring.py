@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from db.rules import is_lille
 
 
 @dataclass
@@ -49,9 +50,11 @@ def score_offer(offer: dict[str, Any], cfg: dict[str, Any]) -> Score:
     score = title_total + min(description_total, cfg.get("description_cap", 2))
     bonus = cfg["location_bonus"]
     place = f"{offer.get('city') or ''} {offer.get('country') or ''}".lower()
-    for key in ("antananarivo", "madagascar", "lille"):
+    for key in ("antananarivo", "madagascar"):
         if key in place:
             score += bonus[key]
+    if "lille" in place or is_lille(offer.get("city")):  # métropole lilloise comprise
+        score += bonus["lille"]
     if offer.get("remote"):
         score += bonus["remote"]
     country = (offer.get("country") or "").lower()

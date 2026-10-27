@@ -1,4 +1,5 @@
 """Règles partagées entre pipeline et API : zone d'une offre, statuts, seuils de santé des sources."""
+import unicodedata
 from typing import Any, Literal, get_args
 
 from sqlalchemy import ColumnElement, case, func
@@ -24,19 +25,46 @@ SILENT_AFTER_RUNS = 3  # passages sans nouvelle offre avant de signaler une sour
 FAILURES_ALERT = 3     # échecs consécutifs avant alerte
 
 
+# zone « Lille » : la métropole (MEL), pas seulement la ville ; noms normalisés par `_commune`
+LILLE_METRO = frozenset({
+    "lille", "lomme", "hellemmes", "villeneuve d'ascq", "roubaix", "tourcoing", "marcq en baroeul",
+    "lambersart", "la madeleine", "wasquehal", "croix", "mons en baroeul", "loos", "ronchin",
+    "faches thumesnil", "lezennes", "lesquin", "haubourdin", "wattrelos", "marquette lez lille",
+    "saint andre lez lille", "hem", "seclin", "wambrechies", "mouvaux", "bondues", "armentieres",
+    "halluin", "englos", "sequedin", "lys lez lannoy", "leers", "neuville en ferrain",
+})
+
+
+def _commune(city: str | None) -> str:
+    """« Villeneuve-d’Ascq » → « villeneuve d'ascq » (casse, tirets, apostrophes, accents)."""
+    s = (city or "").replace("œ", "oe").replace("Œ", "oe").replace("’", "'")
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
+    return " ".join(s.replace("-", " ").split())
+
+
+def is_lille(city: str | None) -> bool:
+    return _commune(city) in LILLE_METRO
+
+
 def zone_code(country: str | None, city: str | None, remote: bool | None) -> str:
     if country == "Madagascar":
         return "mdg"
-    if (city or "").lower() == "lille":
+    if is_lille(city):
         return "lille"
     return "remote" if remote else "other"
+
+
+def _commune_sql(city: Any) -> ColumnElement[str]:
+    """`_commune` en SQL, sans l'extension unaccent (accents des noms de communes du Nord)."""
+    lowered = func.replace(func.lower(city), "œ", "oe")
+    return func.translate(lowered, "-’éèêëàâîïôöûüç", " 'eeeeaaiioouuc")
 
 
 def zone_sql(country: Any, city: Any, remote: Any) -> ColumnElement[str]:
     """Même règle que `zone_code`, en SQL (filtre `region` de l'API)."""
     return case(
         (country == "Madagascar", "mdg"),
-        (func.lower(city) == "lille", "lille"),
+        (_commune_sql(city).in_(LILLE_METRO), "lille"),
         (remote.is_(True), "remote"),
         else_="other",
     )

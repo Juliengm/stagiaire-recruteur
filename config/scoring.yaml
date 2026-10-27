@@ -80,6 +80,23 @@ profiles:
     enquête: 2
     socio-economic: 2
     socio-économique: 2
+    # agriculture et élevage : formation ISTOM, CASEF, Fandriaka, Rwanda, Élevages sans frontières
+    agronomie: 2
+    agronomy: 2
+    "agriculture régénératrice": 3
+    "regenerative agriculture": 3
+    "agroécologie": 2
+    agroecology: 2
+    élevage: 2
+    livestock: 2
+    exploitations: 1
+    farmers: 1
+    producteurs: 1
+    growers: 1
+    mrv: 2
+    "chaîne de valeur": 2
+    "value chain": 2
+    filière: 1
   ESG_FR:                  # pas encore de version anglaise : les offres en anglais y retombent si
     esg: 3                 # aucun profil _EN ne les couvre
     rse: 3
