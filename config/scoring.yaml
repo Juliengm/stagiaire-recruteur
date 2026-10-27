@@ -29,6 +29,8 @@ cvs:
   MEAL_FR: "*Expert_SocioEco_SuiviEval_FR.docx"
   MEAL_EN: "*SocioEco_ME_Expert_EN.docx"
   ESG_FR: "*ESG_Donnees_ES_FR.docx"
+  AGRI_FR: "*Agri_Impact_FR.docx"
+  AGRI_EN: "*Agri_Impact_EN.docx"
 
 profiles:
   NP5_FR:
@@ -80,23 +82,6 @@ profiles:
     enquête: 2
     socio-economic: 2
     socio-économique: 2
-    # agriculture et élevage : formation ISTOM, CASEF, Fandriaka, Rwanda, Élevages sans frontières
-    agronomie: 2
-    agronomy: 2
-    "agriculture régénératrice": 3
-    "regenerative agriculture": 3
-    "agroécologie": 2
-    agroecology: 2
-    élevage: 2
-    livestock: 2
-    exploitations: 1
-    farmers: 1
-    producteurs: 1
-    growers: 1
-    mrv: 2
-    "chaîne de valeur": 2
-    "value chain": 2
-    filière: 1
   ESG_FR:                  # pas encore de version anglaise : les offres en anglais y retombent si
     esg: 3                 # aucun profil _EN ne les couvre
     rse: 3
@@ -115,6 +100,27 @@ profiles:
     "normes de performance": 2
     "performance standards": 2
     "développement durable": 1
+  AGRI_FR:                 # mesure des programmes agricoles : ISTOM, CASEF, Fandriaka, Rwanda, ESF
+    agronomie: 2
+    "agriculture régénératrice": 3
+    agroécologie: 2
+    élevage: 2
+    exploitations: 1
+    producteurs: 1
+    agriculteurs: 1
+    "chaîne de valeur": 2
+    filière: 1
+    mrv: 2
+  AGRI_EN:
+    agronomy: 2
+    "regenerative agriculture": 3
+    agroecology: 2
+    livestock: 2
+    farmers: 1
+    growers: 1
+    smallholders: 2
+    "value chain": 2
+    mrv: 2
 
 location_bonus:
   antananarivo: 3
