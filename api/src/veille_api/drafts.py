@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Any, Literal, Protocol
+from zoneinfo import ZoneInfo
 
 import nh3
 from db.candidature import build_draft, check_texts, html_to_text, load_forbidden, render_letter
@@ -27,6 +28,7 @@ router = APIRouter(tags=["brouillons"])
 
 ROOT = Path(__file__).resolve().parents[3]
 FOLLOW_UP_DAYS = 10
+TZ = ZoneInfo("Indian/Antananarivo")  # date d'envoi au sens de Julien, pas en UTC
 DraftStatus = Literal["draft", "deposited", "sent", "discarded"]
 
 # HTML accepté de l'éditeur (et de /candidatures) : mise en forme simple, alignement seulement
@@ -96,7 +98,7 @@ class GoogleGmail:
                 if "SENT" in m.get("labelIds", [])]
         if not sent:
             return "pending", None
-        return "sent", datetime.fromtimestamp(min(sent) / 1000, UTC).date()
+        return "sent", datetime.fromtimestamp(min(sent) / 1000, TZ).date()
 
 
 def get_gmail() -> Gmail:

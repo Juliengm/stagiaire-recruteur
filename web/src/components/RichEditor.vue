@@ -6,12 +6,15 @@ import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Link from '@tiptap/extension-link'
 
-const props = defineProps({ modelValue: { type: String, default: '' }, page: Boolean })
+const props = defineProps({
+  modelValue: { type: String, default: '' }, page: Boolean, editable: { type: Boolean, default: true },
+})
 const emit = defineEmits(['update:modelValue'])
 let applying = false  // contenu posé par le parent : pas une modification de Julien
 
 const editor = useEditor({
   content: props.modelValue,
+  editable: props.editable,
   extensions: [
     StarterKit.configure({ heading: { levels: [2, 3] }, codeBlock: false, code: false, horizontalRule: false }),
     TextAlign.configure({ types: ['paragraph', 'heading'], alignments: ['left', 'right', 'justify'] }),
@@ -26,6 +29,7 @@ watch(() => props.modelValue, (html) => {
   editor.value.commands.setContent(html, false)
   applying = false
 })
+watch(() => props.editable, (on) => editor.value?.setEditable(on))
 onBeforeUnmount(() => editor.value?.destroy())
 
 function setLink() {
@@ -49,7 +53,7 @@ const BUTTONS = [
 
 <template>
   <div class="rich" :class="{ page }">
-    <div v-if="editor" class="toolbar">
+    <div v-if="editor && editable" class="toolbar">
       <button v-for="b in BUTTONS" :key="b.title" type="button" :title="b.title" :style="b.style"
               :class="{ on: editor.isActive(b.active) }" @click="b.run(editor.chain().focus()).run()">{{ b.label }}</button>
       <button type="button" title="Lien" :class="{ on: editor.isActive('link') }" @click="setLink">🔗</button>

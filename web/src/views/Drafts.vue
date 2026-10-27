@@ -31,6 +31,14 @@ const ccText = computed({
 const shown = computed(() => drafts.value.filter((d) =>
   filter.value === 'all' || (filter.value === 'active' ? ['draft', 'deposited'].includes(d.status) : d.status === filter.value)))
 
+// réponse du serveur : on garde le texte local de l'éditeur (le serveur le nettoie à l'identique à
+// chaque enregistrement) pour ne pas réinitialiser l'éditeur, son curseur et son historique
+function applyServer(out) {
+  const { email_html: _e, letter_html: _l, ...rest } = out
+  Object.assign(draft.value, rest)
+  saved.value = snapshot(draft.value)
+}
+
 async function loadList() {
   error.value = ''
   try {
@@ -64,8 +72,7 @@ async function save() {
   if (!dirty.value) return true
   try {
     const body = Object.fromEntries(EDITABLE.map((k) => [k, draft.value[k]]))
-    draft.value = await api.patch(`/drafts/${draft.value.id}`, body)
-    saved.value = snapshot(draft.value)
+    applyServer(await api.patch(`/drafts/${draft.value.id}`, body))
     message.value = 'Enregistré'
     return true
   } catch (e) {
@@ -90,8 +97,7 @@ async function deposit(force = false) {
   try {
     if (!(await save())) return
     const out = await api.post(`/drafts/${draft.value.id}/deposit`, { force })
-    draft.value = out.draft
-    saved.value = snapshot(draft.value)
+    applyServer(out.draft)
     message.value = 'Brouillon déposé dans Gmail : relis-le et envoie-le depuis Gmail.'
     window.open(out.gmail_url, '_blank')
   } catch (e) {
@@ -105,8 +111,7 @@ async function deposit(force = false) {
 async function discard() {
   if (!window.confirm('Abandonner cette candidature ? (un brouillon déjà déposé reste dans Gmail)')) return
   try {
-    draft.value = await api.patch(`/drafts/${draft.value.id}`, { status: 'discarded' })
-    saved.value = snapshot(draft.value)
+    applyServer(await api.patch(`/drafts/${draft.value.id}`, { status: 'discarded' }))
     router.push('/brouillons')
   } catch (e) {
     error.value = e.message
@@ -202,9 +207,9 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
         </label>
 
         <h3>E-mail</h3>
-        <RichEditor v-model="draft.email_html" />
+        <RichEditor v-model="draft.email_html" :editable="editable" />
         <h3>Lettre de motivation <span class="hint">({{ draft.letter_filename }}, une page au plus)</span></h3>
-        <RichEditor v-model="draft.letter_html" page />
+        <RichEditor v-model="draft.letter_html" page :editable="editable" />
       </fieldset>
 
       <div class="bar actions">

@@ -14,6 +14,11 @@ const dueCount = computed(() => apps.value.filter((a) => a.follow_up_due).length
 
 async function load() {
   error.value = ''
+  try {  // brouillons envoyés depuis Gmail : « postulé » et relance (sans bloquer la vue si Gmail échoue)
+    await api.post('/drafts/sync')
+  } catch (e) {
+    message.value = `Synchronisation Gmail impossible : ${e.message}`
+  }
   try {
     apps.value = await api.get('/applications', { sheet: sheet.value, due: dueOnly.value || '' })
   } catch (e) {
