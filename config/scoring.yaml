@@ -28,6 +28,7 @@ cvs:
   DATA_EN: "*Data_Platform_Product_EN.docx"
   MEAL_FR: "*Expert_SocioEco_SuiviEval_FR.docx"
   MEAL_EN: "*SocioEco_ME_Expert_EN.docx"
+  ESG_FR: "*ESG_Donnees_ES_FR.docx"
 
 profiles:
   NP5_FR:
@@ -79,6 +80,24 @@ profiles:
     enquête: 2
     socio-economic: 2
     socio-économique: 2
+  ESG_FR:                  # pas encore de version anglaise : les offres en anglais y retombent si
+    esg: 3                 # aucun profil _EN ne les couvre
+    rse: 3
+    csr: 3
+    csrd: 3
+    ecovadis: 3
+    "extra-financier": 3
+    "non-financial reporting": 3
+    "sustainability reporting": 3
+    durabilité: 2
+    sustainability: 2
+    gri: 2
+    "e&s": 2
+    "environnemental et social": 2
+    "environmental and social": 2
+    "normes de performance": 2
+    "performance standards": 2
+    "développement durable": 1
 
 location_bonus:
   antananarivo: 3
