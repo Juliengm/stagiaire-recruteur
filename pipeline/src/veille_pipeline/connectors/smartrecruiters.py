@@ -1,8 +1,8 @@
 """Connecteur SmartRecruiters : API publique des offres `api.smartrecruiters.com/v1/companies/{id}/postings`.
 
-robots.txt de api.smartrecruiters.com interdit tout aux robots (sauf LinkedInBot). Julien a
-autorisé le 26/10/2026 de l'ignorer pour cette seule API, publique, documentée et en lecture
-seule (SOURCES.md). Le délai par domaine reste appliqué.
+robots.txt de api.smartrecruiters.com interdit tout aux robots (sauf LinkedInBot) : le client
+HTTP le respecte, la source Kiabi est donc désactivée et passe par les alertes e-mail. Le
+connecteur reste prêt si l'éditeur ouvre son API aux robots.
 """
 import unicodedata
 from collections.abc import Iterable
@@ -49,7 +49,7 @@ class SmartRecruitersConnector:
         postings: list[dict[str, Any]] = []
         offset = 0
         while True:
-            page = http.get(f"{base}?limit={PAGE_SIZE}&offset={offset}", check_robots=False).json()
+            page = http.get(f"{base}?limit={PAGE_SIZE}&offset={offset}").json()
             postings += page.get("content", [])
             offset += PAGE_SIZE
             if offset >= page.get("totalFound", 0) or not page.get("content"):
@@ -59,7 +59,7 @@ class SmartRecruitersConnector:
         for offer in offers:  # le détail (description, URL publique) n'est lu que pour les nouvelles offres
             if offer.external_id in known:
                 continue
-            detail = http.get(f"{base}/{offer.external_id}", check_robots=False).json()
+            detail = http.get(f"{base}/{offer.external_id}").json()
             offer.payload = {**offer.payload, "detail": detail}
             offer.url = detail.get("postingUrl")
         return offers

@@ -1,5 +1,5 @@
 # stagiaire-recruteur — sources initiales (seed de la table `sources`)
-# Voir SOURCES.md pour le détail. verified: true = constaté le 2026-10-20 ; false = à vérifier par un appel réel.
+# verified: true = constaté le 2026-10-20 ; false = à vérifier par un appel réel.
 # Secrets : référencés par ${VAR}, définis dans .env
 
 version: 1
@@ -92,7 +92,7 @@ sources:
     kind: worldbank_procnotices
     region: [mdg]
     priority: 1
-    verified: true                           # paramètres vérifiés le 2026-10-21 (voir SOURCES.md A3)
+    verified: true                           # paramètres vérifiés le 2026-10-21
     config:
       endpoint: https://search.worldbank.org/api/v2/procnotices
       params: {format: json, project_ctry_name_exact: Madagascar,
@@ -248,8 +248,8 @@ sources:
     region: [lille]
     priority: 3
     verified: true
+    enabled: false                           # robots.txt de l'API SmartRecruiters interdit les robots : alertes e-mail
     # identifiant « Kiabi » confirmé (199 offres dans le monde) ; siège à Lezennes (métropole lilloise).
-    # API SmartRecruiters : robots.txt ignoré sur décision de Julien (26/10/2026), voir SOURCES.md
     config: {company_id: Kiabi, countries: [fr], cities: [Lezennes, Lille, Roubaix, Villeneuve-d'Ascq, Wasquehal]}
 
   - id: ovhcloud
@@ -308,7 +308,7 @@ sources:
     region: [mdg]
     priority: 1
     verified: false
-    enabled: false                           # application React : la page est vide sans JavaScript, voir SOURCES.md
+    enabled: false                           # application React : la page est vide sans JavaScript
     config:
       url: https://recrutement.fid-server.org/consultant-externe
       extra_urls: [https://recrutement-prestataire.fid-server.org]

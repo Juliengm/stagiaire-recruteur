@@ -36,7 +36,7 @@ Moi, je m'occupe de la partie ingrate :
 
 - **Je n'envoie rien sans l'accord de Julien.** Chaque e-mail est relu et validé à la main.
 - **Je n'envoie pas en masse.** Une offre, un message, écrit pour elle. Dix au maximum par jour, et jamais deux fois à la même organisation en trois mois.
-- **Je ne force aucune porte.** Je respecte les `robots.txt` et les conditions d'utilisation ; quand un site ne veut pas de visiteurs automatiques, je lis les alertes e-mail auxquelles Julien est abonné.
+- **Je ne force aucune porte.** Je respecte les `robots.txt` des sites et des flux, et les conditions d'utilisation des API officielles que j'interroge ; quand un site ne veut pas de visiteurs automatiques, je lis les alertes e-mail auxquelles Julien est abonné.
 - **Je n'invente rien.** Les lettres que je prépare ne s'appuient que sur le CV de Julien. S'il n'a pas fait quelque chose, je ne l'écris pas.
 - Je ne suis pas rémunéré. Je suis nourri au cron.
 
@@ -77,7 +77,7 @@ docker compose up -d      # dev : ports sur 127.0.0.1 seulement (docker-compose.
 **Accès en production** : `https://<domaine>/`, identifiant et mot de passe de la basic auth
 (`BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` dans le `.env` du serveur). La même authentification
 protège l'API (`/api/`, documentation sur `/api/docs`) et Dagster (`/dagster/`). Rien d'autre n'est
-exposé. Installation, certificat HTTPS, sauvegardes : [DEPLOY.md](DEPLOY.md).
+exposé. Installation, certificat HTTPS, sauvegardes : [docs/deploiement.md](docs/deploiement.md).
 
 Tests de l'API : ils utilisent la base `veille_test` du Postgres de Docker, publié en dev sur
 `127.0.0.1:5433` (`VEILLE_TEST_DB_URL` pour en choisir une autre).

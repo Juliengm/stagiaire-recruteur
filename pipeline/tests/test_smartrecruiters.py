@@ -43,12 +43,12 @@ class FakeHttp:
         return httpx.Response(200, json=data)
 
 
-def test_fetch_ignores_robots_for_api_only_and_skips_known_details(fixtures):
+def test_fetch_respects_robots_and_skips_known_details(fixtures):
     http = FakeHttp(fixtures)
     known = ["744000156316739"]
     source = {**SOURCE, "known_external_ids": known}
     offers = list(SmartRecruitersConnector().fetch(source, None, http))  # type: ignore[arg-type]
-    assert len(offers) == 3 and all(not robots for _, robots in http.calls)
+    assert len(offers) == 3 and all(robots for _, robots in http.calls)
     detail_calls = [u for u, _ in http.calls if "/postings/" in u]
     assert len(detail_calls) == 2  # la première offre est déjà connue
     assert [o.external_id for o in offers if "detail" in o.payload] == [

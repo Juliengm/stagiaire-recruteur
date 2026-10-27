@@ -1,6 +1,6 @@
 # Production : docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 # (jamais avec docker-compose.override.yml). Seul `web` publie des ports : 80 (ACME + redirection)
-# et 443 (HTTPS + basic auth). Voir DEPLOY.md.
+# et 443 (HTTPS + basic auth). Voir docs/deploiement.md.
 services:
   postgres:
     mem_limit: 512m
@@ -9,7 +9,7 @@ services:
     mem_limit: 512m
 
   dagster-code:
-    mem_limit: 3g  # runs + modèle d'embeddings (mesuré : 2,5 Go atteints au traitement, voir DEPLOY.md)
+    mem_limit: 3g  # runs + modèle d'embeddings (mesuré : 2,5 Go atteints au traitement, voir docs/deploiement.md)
 
   dagster-webserver:
     mem_limit: 768m
@@ -37,7 +37,7 @@ services:
       - letsencrypt:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
 
-  # renouvelle les certificats (le premier s'obtient à la main, voir DEPLOY.md)
+  # renouvelle les certificats (le premier s'obtient à la main, voir docs/deploiement.md)
   certbot:
     image: certbot/certbot:v3.0.1
     mem_limit: 256m
@@ -48,7 +48,7 @@ services:
       certbot renew --webroot -w /var/www/certbot --quiet;
       sleep 12h & wait $${!}; done'
 
-  # pg_dump quotidien de la base veille (rotation 14 jours) ; copie hors du VPS : voir DEPLOY.md
+  # pg_dump quotidien de la base veille (rotation 14 jours) ; copie hors du VPS : voir docs/deploiement.md
   backup:
     image: pgvector/pgvector:pg16
     mem_limit: 256m

@@ -129,6 +129,6 @@ onMounted(async () => {
       <textarea v-model="draft.config" rows="4" cols="50" aria-label="configuration JSON"></textarea>
       <button type="submit">Ajouter</button>
     </form>
-    <p class="hint">La configuration attendue par chaque type est décrite dans SOURCES.md ; vérifier la source en réel avant de l'activer.</p>
+    <p class="hint">Exemples de configuration par type : <code>sources.yaml</code>. Vérifier la source en réel avant de l'activer.</p>
   </details>
 </template>

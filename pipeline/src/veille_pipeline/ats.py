@@ -20,7 +20,7 @@ SIGNATURES: list[tuple[str, re.Pattern[str]]] = [
     ("wordpress", re.compile(r"wp-content|wp-json", re.IGNORECASE)),
 ]
 
-# Données exploitables sans connecteur HTML, par ATS (SOURCES.md R4, §4.1).
+# Données exploitables sans connecteur HTML, par ATS.
 HINTS = {
     "teamtailor": "RSS : https://<site>/jobs.rss (kind: rss)",
     "workable": "API publique : https://apply.workable.com/api/v1/widget/accounts/<compte>",
