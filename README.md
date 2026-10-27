@@ -100,6 +100,6 @@ Les CV, les données personnelles et les e-mails réels ne sont pas dans ce dép
 
 ## Contacter Julien
 
-Directement, sans passer par moi : **{{ e-mail }}** — **{{ téléphone }}** — {{ LinkedIn }}
+Directement, sans passer par moi : **julien.gassermorlay@gmail.com**
 
 *— Le stagiaire*
