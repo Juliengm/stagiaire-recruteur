@@ -108,8 +108,8 @@ def check_texts(texts: dict[str, str], *, forbidden: list[re.Pattern[str]], orga
         for pattern in forbidden:
             if found := pattern.search(text):
                 checks.blocking.append(f"{name} : terme interdit « {found.group(0)} »")
-    letter = texts.get("lettre", "")
-    if organization and not mentions(organization, letter, share=0.67):
+    letter = texts.get("lettre")  # absente : e-mail sans lettre jointe
+    if organization and letter is not None and not mentions(organization, letter, share=0.67):
         checks.warnings.append(f"lettre : l'organisation « {organization} » n'est pas citée")
     if not mentions(title, " ".join(texts.values()), share=0.75):
         checks.warnings.append(

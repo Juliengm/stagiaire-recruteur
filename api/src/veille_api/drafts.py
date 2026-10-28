@@ -328,13 +328,14 @@ def _checks(session: Session, draft: ApplicationDraft, letter_pages: int) -> tup
         return [f"{forbidden_file.name} ou {facts_file.name} absent de {folder}"], []
     from pypdf import PdfReader
 
-    cv_text = "\n".join(page.extract_text() or "" for page in
-                        PdfReader(BytesIO(_cv_path(draft.cv_file).read_bytes())).pages)
+    cv_text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(
+        _cv_path(draft.cv_file).read_bytes())).pages) if draft.cv_file else ""
     offer = session.get(Offer, draft.offer_id) if draft.offer_id else None
     sources = [facts_file.read_text(encoding="utf8"), cv_text,
                f"{offer.title} {offer.description or ''}" if offer else ""]
-    texts = {"objet": draft.subject, "e-mail": html_to_text(draft.email_html),
-             "lettre": html_to_text(draft.letter_html)}
+    texts = {"objet": draft.subject, "e-mail": html_to_text(draft.email_html)}
+    if letter := html_to_text(draft.letter_html):  # lettre vide : e-mail sans lettre jointe
+        texts["lettre"] = letter
     checks = check_texts(texts, forbidden=load_forbidden(forbidden_file),
                          organization=draft.organization, title=draft.position,
                          allowed_sources=sources)
@@ -347,7 +348,9 @@ def _checks(session: Session, draft: ApplicationDraft, letter_pages: int) -> tup
 @router.post("/drafts/{draft_id}/deposit")
 def deposit(draft_id: int, body: DepositIn, session: Annotated[Session, Depends(get_session)],
             gmail: Annotated[Gmail, Depends(get_gmail)]) -> DepositOut:
-    """Contrôles, puis brouillon Gmail créé (ou remplacé) avec la lettre et le CV en PDF."""
+    """Contrôles, puis brouillon Gmail créé (ou remplacé) avec la lettre et le CV en PDF.
+
+    Lettre vide ou pas de CV choisi : la pièce correspondante n'est pas jointe (prise de contact)."""
     draft = _get(session, draft_id, lock=True)  # deux clics : le second attend et remplace le premier
     if draft.status in {"sent", "discarded"}:
         raise HTTPException(409, "candidature déjà envoyée ou abandonnée")
@@ -355,8 +358,14 @@ def deposit(draft_id: int, body: DepositIn, session: Annotated[Session, Depends(
         raise HTTPException(409, "pas de destinataire : candidature par portail")
     if draft.gmail_thread_id and gmail.thread_state(draft.gmail_thread_id)[0] == "sent":
         raise HTTPException(409, "déjà envoyée depuis Gmail : synchroniser plutôt que redéposer")
-    cv = _cv_path(draft.cv_file)
-    letter_pdf, pages = render_letter(draft.letter_html, letter_css())
+    attachments = []
+    if draft.cv_file:
+        cv = _cv_path(draft.cv_file)
+        attachments.append((cv.name, cv.read_bytes()))
+    pages = 0
+    if html_to_text(draft.letter_html):
+        letter_pdf, pages = render_letter(draft.letter_html, letter_css())
+        attachments.append((draft.letter_filename, letter_pdf))
     blocking, warnings = _checks(session, draft, pages)
     if blocking or (warnings and not body.force):
         raise HTTPException(422, {"blocking": blocking, "warnings": warnings})
@@ -364,8 +373,7 @@ def deposit(draft_id: int, body: DepositIn, session: Annotated[Session, Depends(
     if not sender or gmail.account().lower() != sender.lower():
         raise HTTPException(409, "le jeton Gmail n'est pas celui de CANDIDATURES_FROM : rien n'est créé")
     msg = build_draft(sender=sender, to=draft.recipient, cc=draft.cc, subject=draft.subject,
-                      html=draft.email_html,
-                      attachments=[(cv.name, cv.read_bytes()), (draft.letter_filename, letter_pdf)])
+                      html=draft.email_html, attachments=attachments)
     draft.gmail_draft_id, draft.gmail_thread_id = gmail.save_draft(
         base64.urlsafe_b64encode(msg.as_bytes()).decode(), draft.gmail_draft_id)
     now = datetime.now(UTC)

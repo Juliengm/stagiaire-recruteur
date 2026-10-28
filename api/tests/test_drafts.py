@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 from collections.abc import Iterator
@@ -115,6 +116,19 @@ def test_forbidden_term_blocks_and_warnings_need_force(client: TestClient, sessi
     assert len(gmail.saved) == 1
 
 
+def test_contact_email_without_letter_nor_cv(client: TestClient, session: Session,
+                                             gmail: FakeGmail) -> None:
+    draft = _draft(client, session, letter_html="<p></p>", cv_file=None,
+                   email_html="<p>Cher David, Chargé S&amp;E chez ONG A ?</p>")
+    resp = client.post(f"/drafts/{draft['id']}/deposit", json={})
+    assert resp.status_code == 200, resp.text
+    raw = base64.urlsafe_b64decode(gmail.saved[0][0])
+    assert b"application/pdf" not in raw
+    empty_mail = client.patch(f"/drafts/{draft['id']}", json={"email_html": ""}).json()
+    resp = client.post(f"/drafts/{empty_mail['id']}/deposit", json={"force": True})
+    assert resp.status_code == 422 and "e-mail vide" in resp.json()["detail"]["blocking"]
+
+
 def test_portal_draft_cannot_be_deposited(client: TestClient, session: Session, gmail: FakeGmail) -> None:
     draft = _draft(client, session, recipient=None, apply_url="https://portail.example.org")
     assert client.post(f"/drafts/{draft['id']}/deposit", json={}).status_code == 409
@@ -156,7 +170,7 @@ def test_dossier_from_offer_is_empty_then_filled(client: TestClient, session: Se
     assert client.get(f"/offers/{offer.id}").json()["draft_id"] == dossier["id"]
     # vide : le dépôt est refusé, même forcé
     resp = client.post(f"/drafts/{dossier['id']}/deposit", json={"force": True})
-    assert resp.status_code == 422 and "lettre vide" in resp.json()["detail"]["blocking"]
+    assert resp.status_code == 422 and "e-mail vide" in resp.json()["detail"]["blocking"]
     # /candidatures remplit le dossier vide au lieu d'en créer un second
     filled = _draft(client, session, offer_id=offer.id, company_info="ONG locale, 40 salariés")
     assert filled["id"] == dossier["id"] and not filled["empty"]

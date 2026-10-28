@@ -58,6 +58,13 @@ async function openDossier(offer, go = false) {
   }
 }
 
+// une offre saisie à la main (candidature spontanée) n'a pas de page : son texte est dans le dossier
+const hasPage = (offer) => offer.canonical_url?.startsWith('http')
+function openOffer(offer) {
+  if (hasPage(offer)) window.open(offer.canonical_url, '_blank', 'noopener')
+  else openDossier(offer, true)
+}
+
 function move(delta) {
   if (!offers.value.length) return
   selected.value = Math.max(0, Math.min(offers.value.length - 1, selected.value + delta))
@@ -73,7 +80,7 @@ function onKey(e) {
   if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); move(1); return }
   if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); move(-1); return }
   if (!offer) return
-  if (e.key === 'o' || e.key === 'Enter') { window.open(offer.canonical_url, '_blank', 'noopener'); return }
+  if (e.key === 'o' || e.key === 'Enter') { openOffer(offer); return }
   if (e.key === 'c') { openDossier(offer, true); return }
   if (KEYS[e.key]) setStatus(offer, KEYS[e.key])
 }
@@ -118,7 +125,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           :class="{ selected: i === selected }" @click="selected = i">
         <td class="num">{{ o.final_score?.toFixed(2) ?? '—' }}</td>
         <td>
-          <a :href="o.canonical_url" target="_blank" rel="noopener">{{ o.title }}</a>
+          <a v-if="hasPage(o)" :href="o.canonical_url" target="_blank" rel="noopener">{{ o.title }}</a>
+          <a v-else href="#" title="Pas de page : ouvre le dossier (texte de l'offre)" @click.prevent="openOffer(o)">{{ o.title }}</a>
           <div v-if="o.matched_keywords.length" class="hint">{{ o.matched_keywords.join(', ') }}</div>
         </td>
         <td>{{ o.organization ?? '—' }}</td>

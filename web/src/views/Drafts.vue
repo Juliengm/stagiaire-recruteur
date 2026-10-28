@@ -206,6 +206,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
         <label>Objet <input v-model="draft.subject" /></label>
         <label>CV
           <select v-model="draft.cv_file">
+            <option :value="null">aucun CV (prise de contact)</option>
             <option v-for="cv in cvs" :key="cv" :value="cv">{{ cv.replace('CV_Julien_Gasser_Morlay_', '').replace('.pdf', '').replaceAll('_', ' ') }}</option>
           </select>
           <a v-if="draft.cv_file" :href="`/api/cvs/${draft.cv_file}`" target="_blank">voir le CV</a>
@@ -215,7 +216,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
         <textarea v-model="draft.company_info" rows="6" placeholder="Activité, projets, bailleurs, interlocuteurs…"></textarea>
         <h3>E-mail</h3>
         <RichEditor v-model="draft.email_html" :editable="editable" />
-        <h3>Lettre de motivation <span class="hint">({{ draft.letter_filename }}, une page au plus)</span></h3>
+        <h3>Lettre de motivation <span class="hint">({{ draft.letter_filename }}, une page au plus ; vide : pas de lettre jointe)</span></h3>
         <RichEditor v-model="draft.letter_html" page :editable="editable" />
       </fieldset>
 
