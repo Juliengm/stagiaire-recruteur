@@ -1,5 +1,6 @@
 <script setup>
-// Brouillons de candidature : préparés par /candidatures, relus ici, déposés dans Gmail.
+// Dossiers de candidature : créés vides depuis une offre ou préparés par /candidatures, relus ici,
+// déposés dans Gmail.
 // Rien ne part d'ici : Julien envoie lui-même chaque brouillon depuis Gmail.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
@@ -20,7 +21,7 @@ const error = ref('')
 const message = ref('')
 const checks = ref(null)  // refus du dépôt : { blocking, warnings }
 
-const EDITABLE = ['recipient', 'cc', 'subject', 'email_html', 'letter_html', 'cv_file']
+const EDITABLE = ['recipient', 'cc', 'subject', 'email_html', 'letter_html', 'cv_file', 'company_info']
 const snapshot = (d) => JSON.stringify(EDITABLE.map((k) => d[k]))
 const dirty = computed(() => draft.value && snapshot(draft.value) !== saved.value)
 const editable = computed(() => draft.value && ['draft', 'deposited'].includes(draft.value.status))
@@ -143,7 +144,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
         <option v-for="(label, code) in DRAFT_STATUSES" :key="code" :value="code">{{ label }}</option>
         <option value="all">tous</option>
       </select>
-      <span class="hint">{{ shown.length }} brouillon(s) · préparés dans Claude Code avec <code>/candidatures</code></span>
+      <span class="hint">{{ shown.length }} dossier(s) · créés depuis les offres, remplis dans Claude Code avec <code>/candidatures</code></span>
       <span v-if="message" class="ok">{{ message }}</span>
       <span v-if="error" class="error">{{ error }}</span>
     </div>
@@ -157,6 +158,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
           <td>{{ d.recipient || 'portail' }}</td>
           <td>
             <span class="badge">{{ DRAFT_STATUSES[d.status] }}</span>
+            <span v-if="d.empty" class="badge warn" title="Dossier créé depuis l'interface, pas encore rédigé">vide</span>
             <span v-if="d.stale" class="badge warn" title="Modifié depuis le dépôt">Gmail pas à jour</span>
           </td>
           <td class="hint">{{ new Date(d.created_at).toLocaleDateString('fr-FR') }}</td>
@@ -189,6 +191,9 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
         <span v-if="error" class="error">{{ error }}</span>
       </div>
 
+      <p v-if="draft.empty" class="note">Dossier vide : lance <code>/candidatures {{ draft.offer_id ?? '' }}</code> dans
+        Claude Code pour rédiger l'e-mail, la lettre et la note sur l'entreprise, ou rédige-les toi-même ici.</p>
+
       <div v-if="checks" class="checks">
         <p v-for="c in checks.blocking" :key="c" class="error">⛔ {{ c }}</p>
         <p v-for="c in checks.warnings" :key="c">⚠️ {{ c }}</p>
@@ -206,6 +211,8 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
           <a v-if="draft.cv_file" :href="`/api/cvs/${draft.cv_file}`" target="_blank">voir le CV</a>
         </label>
 
+        <h3>L'entreprise <span class="hint">(ce qu'on en sait, vu sous l'angle du poste)</span></h3>
+        <textarea v-model="draft.company_info" rows="6" placeholder="Activité, projets, bailleurs, interlocuteurs…"></textarea>
         <h3>E-mail</h3>
         <RichEditor v-model="draft.email_html" :editable="editable" />
         <h3>Lettre de motivation <span class="hint">({{ draft.letter_filename }}, une page au plus)</span></h3>
@@ -235,6 +242,7 @@ aside h2 { margin: .2rem 0; font-size: 1.1rem; }
 fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .5rem; }
 label { display: grid; grid-template-columns: 7rem 1fr auto; gap: .5rem; align-items: center; }
 label input, label select { padding: 3px 5px; }
+textarea { font: inherit; padding: 4px 6px; resize: vertical; }
 h3 { margin: .8rem 0 .2rem; font-size: 14px; }
 .checks { border: 1px solid var(--late-fg); border-radius: 4px; padding: .4rem .8rem; margin-bottom: .6rem; }
 .checks p { margin: .2rem 0; }

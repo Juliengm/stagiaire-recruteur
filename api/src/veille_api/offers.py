@@ -6,7 +6,16 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import yaml
-from db.models import Application, Offer, OfferScore, OfferSource, RawOffer, UserStatus
+from db.candidature import html_to_text
+from db.models import (
+    Application,
+    ApplicationDraft,
+    Offer,
+    OfferScore,
+    OfferSource,
+    RawOffer,
+    UserStatus,
+)
 from db.rules import Status, zone_code, zone_sql
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -44,6 +53,7 @@ class OfferOut(BaseModel):
     matched_keywords: list[str]
     status: str
     note: str | None
+    draft_id: int | None = None  # dossier de candidature en cours (vue Brouillons)
 
 
 class OfferDetailOut(OfferOut):
@@ -60,6 +70,24 @@ class OfferDetailOut(OfferOut):
 
 
 EMAIL = re.compile(r"[\w.%+-]+@[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}", re.IGNORECASE)
+OPEN_DRAFTS = ("draft", "deposited", "sent")  # un dossier abandonné n'en est plus un
+
+
+def draft_is_empty(draft: ApplicationDraft) -> bool:
+    """Dossier créé depuis l'interface et pas encore rédigé."""
+    return not html_to_text(draft.email_html) and not html_to_text(draft.letter_html)
+
+
+def offer_contacts(session: Session, offer: Offer) -> tuple[list[str], str | None]:
+    """Adresses de candidature (saisies à la main, sinon repérées dans la description) et portail."""
+    manual = [r.payload for r in session.scalars(
+        select(RawOffer).join(OfferSource, OfferSource.raw_offer_id == RawOffer.id)
+        .where(OfferSource.offer_id == offer.id, RawOffer.source_id == "saisie_manuelle"))]
+    emails = [p["contact_email"] for p in manual if p.get("contact_email")]
+    for found in EMAIL.findall(offer.description or ""):
+        if found.lower() not in {e.lower() for e in emails}:
+            emails.append(found)
+    return emails, next((p["apply_url"] for p in manual if p.get("apply_url")), None)
 
 
 class StatusIn(BaseModel):
@@ -113,6 +141,11 @@ def list_offers(
                               Offer.description.ilike(pattern)))
     stmt = stmt.order_by(OfferScore.final_score.desc().nulls_last(), Offer.id.desc())
     rows = session.execute(stmt.limit(limit).offset(offset)).all()
+    drafts = dict(session.execute(
+        select(ApplicationDraft.offer_id, func.max(ApplicationDraft.id))
+        .where(ApplicationDraft.offer_id.in_([o.id for o, *_ in rows]),
+               ApplicationDraft.status.in_(OPEN_DRAFTS))
+        .group_by(ApplicationDraft.offer_id)).tuples().all())
     return [
         OfferOut(
             id=o.id, title=o.title, organization=o.organization, location_text=o.location_text,
@@ -121,7 +154,7 @@ def list_offers(
             final_score=s.final_score if s else None,
             recommended_cv=s.recommended_cv if s else None,
             matched_keywords=(s.matched_keywords or []) if s else [],
-            status=st, note=note,
+            status=st, note=note, draft_id=drafts.get(o.id),
         )
         for o, s, reg, st, note in rows
     ]
@@ -140,6 +173,11 @@ def set_status(offer_id: int, body: StatusIn,
                                       set_={**values, "updated_at": func.now()})
     row = session.execute(
         stmt.returning(UserStatus.status, UserStatus.note, UserStatus.updated_at)).one()
+    if body.status in {"ignored", "rejected"}:  # offre écartée : son dossier vide n'a plus lieu d'être
+        for draft in session.scalars(select(ApplicationDraft).where(
+                ApplicationDraft.offer_id == offer_id, ApplicationDraft.status == "draft")):
+            if draft_is_empty(draft):
+                draft.status = "discarded"
     session.commit()
     return StatusOut(offer_id=offer_id, status=row.status, note=row.note, updated_at=row.updated_at)
 
@@ -151,13 +189,7 @@ def get_offer(offer_id: int, session: Annotated[Session, Depends(get_session)]) 
         raise HTTPException(404, "offre inconnue")
     score = session.get(OfferScore, offer_id)
     status = session.get(UserStatus, offer_id)
-    manual = [r.payload for r in session.scalars(
-        select(RawOffer).join(OfferSource, OfferSource.raw_offer_id == RawOffer.id)
-        .where(OfferSource.offer_id == offer_id, RawOffer.source_id == "saisie_manuelle"))]
-    emails = [p["contact_email"] for p in manual if p.get("contact_email")]
-    for found in EMAIL.findall(offer.description or ""):
-        if found.lower() not in {e.lower() for e in emails}:
-            emails.append(found)
+    emails, apply_url = offer_contacts(session, offer)
     return OfferDetailOut(
         id=offer.id, title=offer.title, organization=offer.organization,
         location_text=offer.location_text,
@@ -170,8 +202,9 @@ def get_offer(offer_id: int, session: Annotated[Session, Depends(get_session)]) 
         status=status.status if status else "new", note=status.note if status else None,
         description=offer.description, language=offer.language, country=offer.country,
         city=offer.city, remote=offer.remote, posted_at=offer.posted_at,
-        contact_emails=emails,
-        apply_url=next((p["apply_url"] for p in manual if p.get("apply_url")), None),
+        contact_emails=emails, apply_url=apply_url,
+        draft_id=session.scalar(select(func.max(ApplicationDraft.id)).where(
+            ApplicationDraft.offer_id == offer_id, ApplicationDraft.status.in_(OPEN_DRAFTS))),
         application_ids=list(session.scalars(
             select(Application.id).where(Application.offer_id == offer_id))),
     )

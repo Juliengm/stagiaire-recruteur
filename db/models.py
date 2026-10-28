@@ -162,6 +162,7 @@ class Application(Base):
 class ApplicationDraft(Base):
     """Candidature préparée par /candidatures, relue dans l'interface, déposée en brouillon Gmail.
 
+    Créée vide depuis l'interface (dossier à préparer) ou remplie par /candidatures.
     Statuts : draft (à relire) → deposited (dans Gmail) → sent (envoyée par Julien) | discarded.
     """
 
@@ -183,6 +184,7 @@ class ApplicationDraft(Base):
     required_documents: Mapped[str | None] = mapped_column(Text)  # pièces à joindre soi-même
     weaknesses: Mapped[str | None] = mapped_column(Text)  # exigences non couvertes par les faits
     apply_url: Mapped[str | None] = mapped_column(Text)
+    company_info: Mapped[str | None] = mapped_column(Text)  # l'organisation vue sous l'angle du poste
     status: Mapped[str] = mapped_column(Text, default="draft", server_default="draft")
     gmail_draft_id: Mapped[str | None] = mapped_column(Text)
     gmail_thread_id: Mapped[str | None] = mapped_column(Text)

@@ -87,7 +87,7 @@ cd api && uv run pytest -q && uv run ruff check . && uv run mypy src tests
 ```
 
 Interface (Vue 3, `web/`) : trois vues, **Offres** (tri au clavier : `j`/`k`, `o` ouvrir, `i` `a` `e` `g` `r` `x` `n`
-pour le statut, `c` créer une candidature), **Candidatures** (tableau éditable, relances en retard en rouge,
+pour le statut, `c` ouvrir le dossier de candidature, créé aussi par `i`), **Candidatures** (tableau éditable, relances en retard en rouge,
 import du fichier Excel) et **Sources** (état, activation, « lancer maintenant » qui déclenche le job Dagster par
 son API GraphQL). En développement : `cd web && npm install && npm run dev` (l'API de Docker est jointe par le
 proxy de Vite).
@@ -100,9 +100,12 @@ Claude se renseigne sur l'entreprise (site, rapport RSE / ESG, bailleurs, actual
 propose deux ou trois angles appuyés sur les faits de `cv/`, puis crée une offre `spontaneous` par angle
 retenu.
 
-Préparer les candidatures : `/candidatures` (offres « ça sent bon » sans candidature, ou `/candidatures <id>`).
-Claude choisit le CV, rédige l'e-mail et la lettre de motivation à partir des seuls faits de `cv/` (hors
-dépôt), les pré-contrôle et les range dans la vue **Brouillons**. Julien y corrige l'e-mail et la lettre
+Préparer les candidatures : chaque candidature a un dossier dans la vue **Brouillons** (l'offre, l'e-mail,
+la lettre, le CV choisi dans une liste, une note sur l'entreprise). Marquer une offre « intéressante » ou
+cliquer « créer » dans la vue Offres crée ce dossier vide, avec le CV conseillé et le destinataire repéré.
+`/candidatures` (offres « ça sent bon » sans dossier rédigé, ou `/candidatures <id>`) le remplit : Claude
+se renseigne sur l'organisation, choisit le CV, rédige l'e-mail et la lettre de motivation à partir des
+seuls faits de `cv/` (hors dépôt) et les pré-contrôle. Julien y corrige l'e-mail et la lettre
 (éditeur WYSIWYG), change de CV si besoin, prévisualise la lettre en PDF, puis clique « Déposer dans
 Gmail » : l'API refait les contrôles (termes interdits, une page, chiffres absents des faits) et crée le
 brouillon avec le CV et la lettre en pièces jointes. **L'API ne sait pas envoyer** (un test le vérifie) :

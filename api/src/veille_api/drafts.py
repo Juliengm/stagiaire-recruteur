@@ -1,6 +1,8 @@
 """Brouillons de candidature : relus et corrigés dans l'interface, déposés dans Gmail.
 
-`/candidatures` (Claude Code) les crée ; Julien modifie l'e-mail, la lettre et le CV, puis les dépose
+Un brouillon est le dossier de la candidature : l'offre, l'e-mail, la lettre, le CV choisi et ce
+qu'on sait de l'organisation. L'interface le crée vide depuis une offre ; `/candidatures` (Claude
+Code) le remplit, ou le crée ; Julien modifie l'e-mail, la lettre et le CV, puis les dépose
 en brouillon Gmail et les envoie lui-même depuis Gmail. **Cette API n'envoie jamais rien** : le
 client Gmail ne sait que créer ou remplacer un brouillon et lire un fil (vérifié par un test).
 """
@@ -13,16 +15,25 @@ from typing import Annotated, Any, Literal, Protocol
 from zoneinfo import ZoneInfo
 
 import nh3
-from db.candidature import build_draft, check_texts, html_to_text, load_forbidden, render_letter
-from db.models import Application, ApplicationDraft, Offer, UserStatus
+import yaml
+from db.candidature import (
+    build_draft,
+    check_texts,
+    html_to_text,
+    load_forbidden,
+    render_letter,
+    slug,
+)
+from db.models import Application, ApplicationDraft, Offer, OfferScore, UserStatus
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, field_validator
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from veille_api.db import get_session
+from veille_api.offers import SCORING_FILE, draft_is_empty, offer_contacts
 
 router = APIRouter(tags=["brouillons"])
 
@@ -121,6 +132,7 @@ class DraftIn(BaseModel):
     required_documents: str | None = None
     weaknesses: str | None = None
     apply_url: str | None = None
+    company_info: str | None = None
 
     @field_validator("email_html", "letter_html")
     @classmethod
@@ -135,6 +147,7 @@ class DraftPatch(BaseModel):
     subject: str | None = None
     email_html: str | None = None
     letter_html: str | None = None
+    company_info: str | None = None
     status: Literal["draft", "discarded"] | None = None
 
     @field_validator("email_html", "letter_html")
@@ -155,10 +168,12 @@ class DraftOut(DraftIn):
     created_at: datetime
     updated_at: datetime
     stale: bool = False  # modifié depuis le dépôt : Gmail a une version plus ancienne
+    empty: bool = False  # dossier créé depuis l'interface, pas encore rédigé
 
     @classmethod
     def of(cls, draft: ApplicationDraft) -> "DraftOut":
         out = cls.model_validate(draft)
+        out.empty = draft_is_empty(draft)
         out.stale = bool(draft.status == "deposited" and draft.deposited_at
                          and draft.updated_at > draft.deposited_at)
         return out
@@ -194,6 +209,16 @@ def _cv_path(name: str | None) -> Path:
     return folder / name
 
 
+def recommended_pdf(code: str | None) -> str | None:
+    """CV conseillé par le scoring (« MEAL_FR ») → son PDF dans cv/pdf/, s'il existe."""
+    patterns = yaml.safe_load(SCORING_FILE.read_text()).get("cvs", {})
+    if not code or code not in patterns:
+        return None
+    suffix = Path(patterns[code]).stem.lstrip("*").lower()  # le préfixe diffère entre .docx et .pdf
+    return next((p.name for p in sorted((cv_dir() / "pdf").glob("*.pdf"))
+                 if p.stem.lower().endswith(suffix)), None)
+
+
 @router.get("/cvs")
 def list_cvs() -> list[str]:
     """CV disponibles en PDF (cv/pdf/, générés sur le poste par `candidature.py cv-pdf`)."""
@@ -206,12 +231,54 @@ def get_cv(name: str) -> FileResponse:
                         content_disposition_type="inline")
 
 
+def _open_draft(session: Session, offer_id: int) -> ApplicationDraft | None:
+    return session.scalar(select(ApplicationDraft).where(
+        ApplicationDraft.offer_id == offer_id,
+        ApplicationDraft.status.in_(["draft", "deposited", "sent"]))
+        .order_by(ApplicationDraft.id.desc()).limit(1).with_for_update())
+
+
 @router.post("/drafts", status_code=201)
 def create_draft(body: DraftIn, session: Annotated[Session, Depends(get_session)]) -> DraftOut:
+    """Nouveau brouillon ; si l'offre a un dossier vide (créé depuis l'interface), il est rempli."""
     if body.offer_id is not None and session.get(Offer, body.offer_id) is None:
         raise HTTPException(422, "offre inconnue")
-    draft = ApplicationDraft(**body.model_dump())
+    existing = _open_draft(session, body.offer_id) if body.offer_id is not None else None
+    if existing and existing.status == "draft" and draft_is_empty(existing):
+        for key, value in body.model_dump(exclude_unset=True).items():
+            setattr(existing, key, value)
+        existing.updated_at = datetime.now(UTC)
+        draft = existing
+    else:
+        draft = ApplicationDraft(**body.model_dump())
+        session.add(draft)
+    session.commit()
+    return DraftOut.of(draft)
+
+
+@router.post("/offers/{offer_id}/draft")
+def open_dossier(offer_id: int, session: Annotated[Session, Depends(get_session)]) -> DraftOut:
+    """Dossier de candidature d'une offre : celui en cours, sinon un dossier vide (offre, CV conseillé,
+    destinataire) que /candidatures remplira. L'offre passe en « intéressante » si elle était nouvelle."""
+    offer = session.get(Offer, offer_id)
+    if offer is None:
+        raise HTTPException(404, "offre inconnue")
+    if draft := _open_draft(session, offer_id):
+        return DraftOut.of(draft)
+    emails, apply_url = offer_contacts(session, offer)
+    score = session.get(OfferScore, offer_id)
+    draft = ApplicationDraft(
+        offer_id=offer_id, organization=offer.organization, position=offer.title,
+        language=offer.language if offer.language in {"fr", "en"} else None,
+        cv_file=recommended_pdf(score.recommended_cv if score else None),
+        recipient=emails[0] if emails else None, cc=[], subject="", email_html="", letter_html="",
+        letter_filename=f"LM_Julien_Gasser_Morlay_{slug(offer.organization or offer.title)}.pdf",
+        apply_url=apply_url)
     session.add(draft)
+    stmt = insert(UserStatus).values(offer_id=offer_id, status="interesting")
+    session.execute(stmt.on_conflict_do_update(index_elements=[UserStatus.offer_id],
+                                               set_={"status": "interesting", "updated_at": func.now()},
+                                               where=UserStatus.status == "new"))
     session.commit()
     return DraftOut.of(draft)
 
@@ -271,6 +338,7 @@ def _checks(session: Session, draft: ApplicationDraft, letter_pages: int) -> tup
     checks = check_texts(texts, forbidden=load_forbidden(forbidden_file),
                          organization=draft.organization, title=draft.position,
                          allowed_sources=sources)
+    checks.blocking += [f"{name} vide" for name, text in texts.items() if not text.strip()]
     if letter_pages > 1:
         checks.blocking.append(f"lettre : {letter_pages} pages, une seule attendue")
     return checks.blocking, checks.warnings

@@ -4,8 +4,11 @@ argument-hint: "[id d'offre …]  (vide : offres « ça sent bon » sans candida
 ---
 
 Tu prépares des candidatures pour Julien. **Tu n'envoies rien et tu ne touches pas à Gmail.**
-Tu ranges chaque candidature dans l'appli (vue **Brouillons**). Julien y relit et corrige l'e-mail, la
-lettre et le choix du CV, la dépose dans Gmail d'un clic, puis l'envoie lui-même depuis Gmail.
+Tu ranges chaque candidature dans l'appli (vue **Brouillons**) : c'est le **dossier de la candidature**,
+avec l'offre, l'e-mail, la lettre, le CV choisi et une note sur l'entreprise. Julien peut créer ce
+dossier vide depuis l'appli (bouton « créer » ou touche `i` dans la vue Offres) : tu le remplis. Julien y
+relit et corrige l'e-mail, la lettre, la note et le choix du CV, la dépose dans Gmail d'un clic, puis
+l'envoie lui-même depuis Gmail.
 Le ton et les faits comptent plus que la vitesse.
 
 Entrée : $ARGUMENTS
@@ -39,14 +42,21 @@ Cette commande passe en « postulé » les brouillons que Julien a envoyés depu
 
 Identifiants donnés : ceux-là. Sinon :
 1. `$API GET "/offers?status=interesting"`, puis pour chacune `$API GET /offers/<id>` ;
-2. écarte celles qui ont déjà une candidature (`application_ids` non vide) ou un brouillon
-   (`$API GET /drafts`, champ `offer_id`) ;
-3. garde-en cinq au plus, les mieux notées d'abord.
+2. écarte celles qui ont déjà une candidature (`application_ids` non vide) ou un brouillon rédigé
+   (`$API GET /drafts` : `offer_id`, avec `empty` à `false`). Un dossier **vide** (`empty` à `true`,
+   créé depuis l'appli) n'écarte pas l'offre : elle est **à traiter** ;
+3. traite toutes celles qui restent, les mieux notées d'abord.
 
 Une offre déjà traitée n'est refaite que si Julien a donné son identifiant.
 
 Pour chaque offre, crée le dossier de travail `cv/candidatures/<AAAA-MM-JJ>_<Organisation>_<id>/` (hors
-dépôt) et enregistre la réponse de `GET /offers/<id>` dans `offre.json`.
+dépôt) et enregistre la réponse de `GET /offers/<id>` dans `offre.json`. Le dossier contiendra à la fin :
+`offre.json`, `entreprise.md`, le CV choisi (copie du PDF de `cv/pdf/`), `email.html`, `lettre.html`,
+`apercu.pdf` et `brouillon.json`.
+
+Si l'offre a un dossier vide dans l'appli (`draft_id` de `GET /offers/<id>`), lis-le
+(`$API GET /drafts/<draft_id>`) : le CV, le destinataire ou la note sur l'entreprise que Julien y a
+déjà mis priment sur tes choix.
 
 ## 3. Décider
 
@@ -75,7 +85,27 @@ destinataire est l'adresse RH trouvée (`contact_emails`), sinon le formulaire (
 ni l'autre n'existe, laisse `recipient` et `apply_url` vides et dis-le dans `required_documents`
 (« destinataire à trouver »).
 
-## 4. Rédiger (en HTML simple)
+## 4. Se renseigner sur l'organisation
+
+Lis `cv/candidatures/entreprises/<Organisation>.md` s'il existe (`<Organisation>` en lettres et chiffres
+sans accents, séparés par `_`). Sinon, fais une recherche courte (site de l'organisation, projets et
+bailleurs récents en lien avec le poste, implantation à Madagascar ou à Lille, actualité de l'année) et
+écris ce fichier, sources citées (URL et date de consultation).
+
+Tire-en `entreprise.md` dans le dossier de l'offre, et le même texte pour le champ `company_info` du
+brouillon : 6 à 12 lignes en texte simple (pas de HTML), utiles pour la lettre et l'entretien :
+
+- ce que fait l'organisation, sa taille, où elle travaille ;
+- les projets ou engagements qui touchent au poste, datés ;
+- les bailleurs ou clients principaux, s'ils sont connus ;
+- l'interlocuteur (nom, fonction), s'il est connu ;
+- ce qui reste incertain.
+
+Rien d'inventé : ce qui n'est pas sourcé n'y figure pas. Ces informations servent à Julien ; dans la
+lettre, un chiffre de l'organisation n'est cité que s'il figure dans l'offre (le contrôle `verifier`
+le signalerait).
+
+## 5. Rédiger (en HTML simple)
 
 Écris `email.html` et `lettre.html` dans le dossier de l'offre. N'utilise que les balises suivantes :
 `<p>`, `<br>`, `<strong>`, `<em>`, `<ul>`/`<ol>`/`<li>`, `<a href>`. Pour aligner un paragraphe à droite,
@@ -151,7 +181,7 @@ Candidature spontanée : `Candidature spontanée — <rôle proposé> — Julien
   Candidature spontanée : remplace « J'ai trouvé la vôtre, il l'a lue » par « Il n'y a pas d'annonce :
   je me suis renseigné sur <organisation>, il a lu ce que j'ai trouvé ».
 
-## 5. Pré-contrôler
+## 6. Pré-contrôler
 
 ```bash
 $OUTIL verifier --offre <dossier>/offre.json --objet "<objet>" --email <dossier>/email.html \
@@ -169,21 +199,25 @@ $OUTIL lettre <dossier>/lettre.html <dossier>/apercu.pdf
 
 L'appli refait ces contrôles au moment du dépôt, sur le texte que Julien aura modifié.
 
-## 6. Ranger le brouillon dans l'appli
+## 7. Ranger le dossier dans l'appli
 
-Écris le JSON dans `<dossier>/brouillon.json`, puis `$API POST /drafts < <dossier>/brouillon.json` :
+Copie le CV choisi dans le dossier (`cp cv/pdf/<CV choisi>.pdf <dossier>/`). Écris le JSON dans
+`<dossier>/brouillon.json`, puis `$API POST /drafts < <dossier>/brouillon.json`. Si l'offre a un dossier
+vide dans l'appli, `POST /drafts` le remplit au lieu d'en créer un second (vérifie que l'`id` renvoyé est
+bien le `draft_id` de l'offre) ; un dossier déjà rédigé n'est jamais écrasé.
 
 ```json
 {"offer_id": <id>, "organization": "...", "position": "<intitulé exact>", "language": "fr",
  "segment": "institutionnel", "cv_file": "<PDF de GET /cvs>", "recipient": "<adresse ou null>",
  "cc": ["..."], "subject": "...", "email_html": "...", "letter_html": "...",
  "letter_filename": "LM_Julien_Gasser_Morlay_<Organisation>.pdf",
- "required_documents": "..." , "weaknesses": "...", "apply_url": "<lien du portail ou null>"}
+ "required_documents": "..." , "weaknesses": "...", "apply_url": "<lien du portail ou null>",
+ "company_info": "<texte de entreprise.md>"}
 ```
 
 `<Organisation>` dans le nom de fichier : lettres et chiffres sans accents, séparés par `_`.
 
-## 7. Rendre compte
+## 8. Rendre compte
 
 Une ligne par offre :
 

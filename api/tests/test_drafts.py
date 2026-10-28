@@ -1,10 +1,11 @@
+import os
 import re
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 
 import pytest
-from db.models import Application, Offer, UserStatus
+from db.models import Application, Offer, OfferScore, UserStatus
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -132,3 +133,59 @@ def test_sync_marks_sent_and_discarded(client: TestClient, session: Session, gma
     client.post(f"/drafts/{other['id']}/deposit", json={})
     gmail.threads["t-1"] = ("missing", None)  # le fil du second brouillon a disparu
     assert client.post("/drafts/sync").json() == {"sent": 0, "discarded": 1}
+
+
+def test_dossier_from_offer_is_empty_then_filled(client: TestClient, session: Session,
+                                                gmail: FakeGmail) -> None:
+    pdf = Path(os.environ["CV_DIR"]) / "pdf"
+    (pdf / "CV_Julien_Gasser_Morlay_Expert_SocioEco_SuiviEval_FR.pdf").write_bytes(
+        (pdf / "CV_A.pdf").read_bytes())
+    offer = Offer(title="Chargé S&E", canonical_url="https://ex.org/2", organization="ONG Été",
+                  language="fr", description="Écrire à rh@ong.example.org")
+    session.add(offer)
+    session.flush()
+    session.add(OfferScore(offer_id=offer.id, final_score=0.8, recommended_cv="MEAL_FR"))
+    session.commit()
+    dossier = client.post(f"/offers/{offer.id}/draft").json()
+    assert dossier["empty"] and dossier["status"] == "draft"
+    assert dossier["cv_file"] == "CV_Julien_Gasser_Morlay_Expert_SocioEco_SuiviEval_FR.pdf"
+    assert dossier["recipient"] == "rh@ong.example.org"
+    assert dossier["letter_filename"] == "LM_Julien_Gasser_Morlay_ONG_Ete.pdf"
+    assert session.get_one(UserStatus, offer.id).status == "interesting"
+    assert client.post(f"/offers/{offer.id}/draft").json()["id"] == dossier["id"]  # pas de doublon
+    assert client.get(f"/offers/{offer.id}").json()["draft_id"] == dossier["id"]
+    # vide : le dépôt est refusé, même forcé
+    resp = client.post(f"/drafts/{dossier['id']}/deposit", json={"force": True})
+    assert resp.status_code == 422 and "lettre vide" in resp.json()["detail"]["blocking"]
+    # /candidatures remplit le dossier vide au lieu d'en créer un second
+    filled = _draft(client, session, offer_id=offer.id, company_info="ONG locale, 40 salariés")
+    assert filled["id"] == dossier["id"] and not filled["empty"]
+    assert filled["company_info"] == "ONG locale, 40 salariés"
+    # un dossier déjà rédigé n'est jamais écrasé
+    assert _draft(client, session, offer_id=offer.id)["id"] != dossier["id"]
+
+
+def test_unknown_recommended_cv_leaves_choice_open(client: TestClient, session: Session,
+                                                   gmail: FakeGmail) -> None:
+    offer = Offer(title="Data", canonical_url="https://ex.org/3", organization="Start-up")
+    session.add(offer)
+    session.flush()
+    session.add(OfferScore(offer_id=offer.id, final_score=0.5, recommended_cv="INCONNU"))
+    session.commit()
+    assert client.post(f"/offers/{offer.id}/draft").json()["cv_file"] is None
+    assert client.post("/offers/999999/draft").status_code == 404
+
+
+def test_rejecting_offer_discards_only_empty_dossier(client: TestClient, session: Session,
+                                                     gmail: FakeGmail) -> None:
+    written = _draft(client, session)
+    empty = client.post(f"/offers/{written['offer_id']}/draft").json()
+    assert empty["id"] == written["id"]  # dossier déjà rédigé : rendu tel quel
+    other = Offer(title="Autre", canonical_url="https://ex.org/4", organization="ONG B")
+    session.add(other)
+    session.commit()
+    empty = client.post(f"/offers/{other.id}/draft").json()
+    for offer_id in (written["offer_id"], other.id):
+        client.patch(f"/offers/{offer_id}/status", json={"status": "ignored"})
+    assert client.get(f"/drafts/{empty['id']}").json()["status"] == "discarded"
+    assert client.get(f"/drafts/{written['id']}").json()["status"] == "draft"
