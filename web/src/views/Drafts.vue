@@ -29,6 +29,20 @@ const ccText = computed({
   get: () => (draft.value?.cc ?? []).join(', '),
   set: (v) => { draft.value.cc = v.split(/[,;\s]+/).filter(Boolean) },
 })
+// onglets du dossier, gardés dans l'URL ; un dossier vide s'ouvre sur l'offre
+const TABS = { candidature: 'Candidature', offre: "L'offre", entreprise: "L'entreprise" }
+const tab = computed({
+  get: () => (TABS[route.query.onglet] ? route.query.onglet : draft.value?.empty ? 'offre' : 'candidature'),
+  set: (onglet) => router.replace({ query: { ...route.query, onglet } }),
+})
+const announceUrl = computed(() => (offer.value?.canonical_url?.startsWith('http') ? offer.value.canonical_url : null))
+const applyUrl = computed(() => draft.value?.apply_url || offer.value?.apply_url || null)
+// texte de l'offre, liens cliquables (les sources d'une candidature spontanée), sans v-html
+const URL_RE = /(https?:\/\/[^\s<>()"']*[^\s<>()"'.,;:!?])/
+const offerParts = computed(() => (offer.value?.description ?? '').split(URL_RE)
+  .map((text, i) => ({ text, link: i % 2 === 1 })))
+const daysLeft = computed(() => (offer.value?.deadline ? (new Date(offer.value.deadline) - new Date()) / 864e5 : null))
+
 const shown = computed(() => drafts.value.filter((d) =>
   filter.value === 'all' || (filter.value === 'active' ? ['draft', 'deposited'].includes(d.status) : d.status === filter.value)))
 
@@ -167,77 +181,103 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
     </table>
   </section>
 
-  <!-- une candidature -->
+  <!-- un dossier : en-tête (liens, points d'attention), onglets, actions -->
   <section v-else-if="draft" class="draft">
-    <aside>
-      <p><RouterLink to="/brouillons">← Brouillons</RouterLink></p>
-      <h2>{{ draft.position }}</h2>
-      <p>{{ draft.organization }}<template v-if="offer"> · {{ offer.location_text }}</template></p>
-      <p v-if="offer?.deadline" :class="{ 'late-fg': new Date(offer.deadline) - new Date() < 7 * 864e5 }">
-        Date limite : {{ new Date(offer.deadline).toLocaleDateString('fr-FR') }}</p>
-      <p v-if="offer?.canonical_url?.startsWith('http')"><a :href="offer.canonical_url" target="_blank" rel="noopener">Voir l'offre</a></p>
-      <p v-if="draft.apply_url">Candidature par portail : <a :href="draft.apply_url" target="_blank" rel="noopener">{{ draft.apply_url }}</a></p>
-      <div v-if="draft.required_documents" class="note"><strong>Pièces à joindre toi-même</strong><p>{{ draft.required_documents }}</p></div>
-      <div v-if="draft.weaknesses" class="note"><strong>Points faibles face à l'offre</strong><p>{{ draft.weaknesses }}</p></div>
-      <details v-if="offer?.description" open><summary>Texte de l'offre</summary><p class="offer-text">{{ offer.description }}</p></details>
-    </aside>
-
-    <div class="form">
-      <div class="bar">
+    <div class="head">
+      <p><RouterLink to="/brouillons">← Dossiers</RouterLink></p>
+      <h2>{{ draft.position }}
         <span class="badge">{{ DRAFT_STATUSES[draft.status] }}</span>
-        <span v-if="draft.stale" class="badge warn">Gmail contient une version plus ancienne : redéposer</span>
-        <span v-if="dirty" class="hint">modifications non enregistrées</span>
-        <span v-if="message" class="ok">{{ message }}</span>
-        <span v-if="error" class="error">{{ error }}</span>
+        <span v-if="draft.empty" class="badge warn">vide</span>
+        <span v-if="draft.stale" class="badge warn" title="Modifié depuis le dépôt">Gmail pas à jour : redéposer</span>
+      </h2>
+      <p class="meta">
+        <strong>{{ draft.organization }}</strong>
+        <template v-if="offer?.location_text"> · {{ offer.location_text }}</template>
+        <template v-if="offer?.deadline"> · <span :class="{ 'late-fg': daysLeft < 7 }">date limite
+          {{ new Date(offer.deadline).toLocaleDateString('fr-FR') }}</span></template>
+      </p>
+      <p class="links">
+        <a v-if="announceUrl" :href="announceUrl" target="_blank" rel="noopener">Voir l'annonce ↗</a>
+        <span v-else-if="offer" class="hint">Pas d'annonce en ligne (candidature spontanée ou texte collé) :
+          texte et sources dans <a href="#" @click.prevent="tab = 'offre'">l'onglet « L'offre »</a></span>
+        <a v-if="applyUrl" :href="applyUrl" target="_blank" rel="noopener">Portail de candidature ↗</a>
+        <span v-if="draft.recipient">E-mail à <strong>{{ draft.recipient }}</strong></span>
+        <a v-if="draft.cv_file" :href="`/api/cvs/${draft.cv_file}`" target="_blank">CV joint ↗</a>
+      </p>
+      <div v-if="draft.required_documents || draft.weaknesses" class="notes">
+        <div v-if="draft.required_documents" class="note"><strong>Pièces à joindre toi-même</strong><p>{{ draft.required_documents }}</p></div>
+        <div v-if="draft.weaknesses" class="note"><strong>Points faibles face à l'offre</strong><p>{{ draft.weaknesses }}</p></div>
       </div>
-
       <p v-if="draft.empty" class="note">Dossier vide : lance <code>/candidatures {{ draft.offer_id ?? '' }}</code> dans
         Claude Code pour rédiger l'e-mail, la lettre et la note sur l'entreprise, ou rédige-les toi-même ici.</p>
+    </div>
 
-      <div v-if="checks" class="checks">
-        <p v-for="c in checks.blocking" :key="c" class="error">⛔ {{ c }}</p>
-        <p v-for="c in checks.warnings" :key="c">⚠️ {{ c }}</p>
-        <button v-if="!checks.blocking.length" :disabled="busy" @click="deposit(true)">Déposer quand même</button>
-      </div>
+    <nav class="tabs">
+      <button v-for="(label, code) in TABS" :key="code" type="button" :class="{ on: tab === code }" @click="tab = code">{{ label }}</button>
+      <span v-if="dirty" class="hint">modifications non enregistrées</span>
+      <span v-if="message" class="ok">{{ message }}</span>
+      <span v-if="error" class="error">{{ error }}</span>
+    </nav>
 
-      <fieldset :disabled="!editable">
-        <label>Destinataire <input v-model="draft.recipient" type="email" placeholder="vide : candidature par portail" /></label>
-        <label>Copie <input v-model="ccText" placeholder="adresses séparées par des virgules" /></label>
-        <label>Objet <input v-model="draft.subject" /></label>
-        <label>CV
-          <select v-model="draft.cv_file">
-            <option :value="null">aucun CV (prise de contact)</option>
-            <option v-for="cv in cvs" :key="cv" :value="cv">{{ cv.replace('CV_Julien_Gasser_Morlay_', '').replace('.pdf', '').replaceAll('_', ' ') }}</option>
-          </select>
-          <a v-if="draft.cv_file" :href="`/api/cvs/${draft.cv_file}`" target="_blank">voir le CV</a>
-        </label>
+    <div v-if="checks" class="checks">
+      <p v-for="c in checks.blocking" :key="c" class="error">⛔ {{ c }}</p>
+      <p v-for="c in checks.warnings" :key="c">⚠️ {{ c }}</p>
+      <button v-if="!checks.blocking.length" :disabled="busy" @click="deposit(true)">Déposer quand même</button>
+    </div>
 
-        <h3>L'entreprise <span class="hint">(ce qu'on en sait, vu sous l'angle du poste)</span></h3>
-        <textarea v-model="draft.company_info" rows="6" placeholder="Activité, projets, bailleurs, interlocuteurs…"></textarea>
-        <h3>E-mail</h3>
-        <RichEditor v-model="draft.email_html" :editable="editable" />
-        <h3>Lettre de motivation <span class="hint">({{ draft.letter_filename }}, une page au plus ; vide : pas de lettre jointe)</span></h3>
-        <RichEditor v-model="draft.letter_html" page :editable="editable" />
-      </fieldset>
+    <!-- v-show : les éditeurs gardent leur curseur et leur historique d'un onglet à l'autre -->
+    <div v-show="tab === 'offre'" class="pane">
+      <p v-if="offer?.description" class="offer-text"><template v-for="(part, i) in offerParts" :key="i"><a
+        v-if="part.link" :href="part.text" target="_blank" rel="noopener">{{ part.text }}</a><template v-else>{{ part.text }}</template></template></p>
+      <p v-else class="hint">Pas de texte enregistré pour cette offre.</p>
+    </div>
 
-      <div class="bar actions">
-        <button :disabled="!dirty || !editable" @click="save">Enregistrer <kbd>Ctrl+S</kbd></button>
-        <button @click="preview">Aperçu de la lettre (PDF)</button>
-        <button v-if="draft.recipient" class="primary" :disabled="busy || !editable" @click="deposit(false)">
-          {{ busy ? 'Dépôt…' : draft.gmail_draft_id ? 'Redéposer dans Gmail' : 'Déposer dans Gmail' }}</button>
-        <a v-if="draft.status === 'deposited'" href="https://mail.google.com/mail/u/0/#drafts" target="_blank">Ouvrir les brouillons Gmail</a>
-        <button v-if="editable" class="link" @click="discard">Abandonner</button>
-      </div>
+    <div v-show="tab === 'entreprise'" class="pane">
+      <p class="hint">Ce qu'on sait de l'organisation, vu sous l'angle du poste (rempli par <code>/candidatures</code>, modifiable).</p>
+      <textarea v-model="draft.company_info" rows="18" :disabled="!editable" placeholder="Activité, projets, bailleurs, interlocuteurs…"></textarea>
+    </div>
+
+    <fieldset v-show="tab === 'candidature'" :disabled="!editable" class="pane">
+      <label>Destinataire <input v-model="draft.recipient" type="email" placeholder="vide : candidature par portail" /></label>
+      <label>Copie <input v-model="ccText" placeholder="adresses séparées par des virgules" /></label>
+      <label>Objet <input v-model="draft.subject" /></label>
+      <label>CV
+        <select v-model="draft.cv_file">
+          <option :value="null">aucun CV (prise de contact)</option>
+          <option v-for="cv in cvs" :key="cv" :value="cv">{{ cv.replace('CV_Julien_Gasser_Morlay_', '').replace('.pdf', '').replaceAll('_', ' ') }}</option>
+        </select>
+        <a v-if="draft.cv_file" :href="`/api/cvs/${draft.cv_file}`" target="_blank">voir le CV</a>
+      </label>
+      <h3>E-mail</h3>
+      <RichEditor v-model="draft.email_html" :editable="editable" />
+      <h3>Lettre de motivation <span class="hint">({{ draft.letter_filename }}, une page au plus ; vide : pas de lettre jointe)</span></h3>
+      <RichEditor v-model="draft.letter_html" page :editable="editable" />
+    </fieldset>
+
+    <div class="bar actions">
+      <button :disabled="!dirty || !editable" @click="save">Enregistrer <kbd>Ctrl+S</kbd></button>
+      <button @click="preview">Aperçu de la lettre (PDF)</button>
+      <button v-if="draft.recipient" class="primary" :disabled="busy || !editable" @click="deposit(false)">
+        {{ busy ? 'Dépôt…' : draft.gmail_draft_id ? 'Redéposer dans Gmail' : 'Déposer dans Gmail' }}</button>
+      <a v-if="draft.status === 'deposited'" href="https://mail.google.com/mail/u/0/#drafts" target="_blank">Ouvrir les brouillons Gmail</a>
+      <button v-if="editable" class="link" @click="discard">Abandonner</button>
     </div>
   </section>
   <p v-else-if="error" class="error">{{ error }}</p>
 </template>
 
 <style scoped>
-.draft { display: grid; grid-template-columns: minmax(16rem, 1fr) 2.2fr; gap: 1.5rem; align-items: start; }
-aside { position: sticky; top: .5rem; max-height: calc(100vh - 5rem); overflow: auto; }
-aside h2 { margin: .2rem 0; font-size: 1.1rem; }
-.offer-text { white-space: pre-wrap; font-size: 12px; color: var(--muted); }
+.draft { max-width: 60rem; }
+.head p { margin: .3rem 0; }
+.head h2 { margin: .2rem 0; font-size: 1.15rem; }
+.head h2 .badge { font-size: 12px; font-weight: normal; vertical-align: middle; }
+.links { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: .6rem; }
+.tabs { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; border-bottom: 1px solid var(--line); margin: 1rem 0 .8rem; }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: .4rem .2rem; margin-bottom: -1px; font: inherit; cursor: pointer; color: var(--muted); }
+.tabs button.on { border-bottom-color: var(--accent); color: var(--fg); font-weight: 600; }
+.pane textarea { width: 100%; box-sizing: border-box; }
+.offer-text { white-space: pre-wrap; line-height: 1.45; overflow-wrap: anywhere; }
 .note { background: #fff8e1; border-radius: 4px; padding: .4rem .6rem; margin: .5rem 0; }
 .note p { margin: .2rem 0 0; white-space: pre-wrap; }
 fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .5rem; }
@@ -247,11 +287,10 @@ textarea { font: inherit; padding: 4px 6px; resize: vertical; }
 h3 { margin: .8rem 0 .2rem; font-size: 14px; }
 .checks { border: 1px solid var(--late-fg); border-radius: 4px; padding: .4rem .8rem; margin-bottom: .6rem; }
 .checks p { margin: .2rem 0; }
-.actions { margin-top: 1rem; }
+.actions { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); padding: .6rem 0; margin: 1rem 0 0; }
 button.primary { background: var(--accent); color: #fff; border: 1px solid var(--accent); border-radius: 4px; padding: 4px 12px; }
 button.primary:disabled { opacity: .6; }
 button.link { background: none; border: 0; color: var(--late-fg); text-decoration: underline; }
 tr.clickable { cursor: pointer; }
 tr.clickable:hover { background: var(--sel); }
-@media (max-width: 900px) { .draft { grid-template-columns: 1fr; } aside { position: static; max-height: none; } }
 </style>
