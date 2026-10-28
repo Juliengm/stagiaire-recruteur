@@ -22,8 +22,37 @@ const message = ref('')
 const checks = ref(null)  // refus du dépôt : { blocking, warnings }
 
 const EDITABLE = ['recipient', 'cc', 'subject', 'email_html', 'letter_html', 'cv_file', 'company_info']
-const snapshot = (d) => JSON.stringify(EDITABLE.map((k) => d[k]))
-const dirty = computed(() => draft.value && snapshot(draft.value) !== saved.value)
+const LABELS = { recipient: 'destinataire', cc: 'copie', subject: 'objet', email_html: 'e-mail',
+  letter_html: 'lettre', cv_file: 'CV', company_info: 'note sur l\'entreprise' }
+const KEPT = { p: 'p', br: 'br', strong: 'strong', b: 'strong', em: 'em', i: 'em', u: 'u', ul: 'ul', ol: 'ol',
+  li: 'li', a: 'a', h2: 'h2', h3: 'h3', blockquote: 'blockquote' }
+// HTML ramené à ce qui compte (texte, balises gardées, alignement, liens) : les éditeurs et les extensions du
+// navigateur (correcteurs, remplissage) le réécrivent sans que le texte change. DOMParser : rien n'est exécuté
+function canon(html) {
+  const out = []
+  const walk = (node) => {
+    for (const n of node.childNodes) {
+      if (n.nodeType === Node.TEXT_NODE) { out.push(n.textContent); continue }
+      if (n.nodeType !== Node.ELEMENT_NODE) continue
+      const tag = KEPT[n.tagName.toLowerCase()]
+      if (tag === 'br' && !n.nextSibling) continue  // <br> de fin de paragraphe ajouté par l'éditeur
+      const align = n.style?.textAlign && n.style.textAlign !== 'left' ? ` ${n.style.textAlign}` : ''
+      if (tag) out.push(`<${tag}${align}${tag === 'a' ? ` ${n.getAttribute('href')}` : ''}>`)
+      walk(n)
+      if (tag && tag !== 'br') out.push(`</${tag}>`)
+    }
+  }
+  walk(new DOMParser().parseFromString(html ?? '', 'text/html').body)
+  return out.join('').replace(/[\s\u00a0]+/g, ' ').replace(/ ?(<\/?(?:p|li|ul|ol|h2|h3|blockquote)[^>]*>) ?/g, '$1')
+}
+const snapshot = (d) => JSON.stringify(EDITABLE.map((k) =>
+  (k.endsWith('_html') ? canon(d[k]) : k === 'cc' ? d[k] ?? [] : d[k] || null)))
+const changed = computed(() => {
+  if (!draft.value || !saved.value) return []
+  const now = JSON.parse(snapshot(draft.value)), was = JSON.parse(saved.value)
+  return EDITABLE.filter((k, i) => JSON.stringify(now[i]) !== JSON.stringify(was[i])).map((k) => LABELS[k])
+})
+const dirty = computed(() => changed.value.length > 0)
 const editable = computed(() => draft.value && ['draft', 'deposited'].includes(draft.value.status))
 const ccText = computed({
   get: () => (draft.value?.cc ?? []).join(', '),
@@ -168,7 +197,8 @@ function beforeUnload(e) {
 }
 
 watch(() => route.params.id, (id) => (id ? loadDraft(id) : loadList()), { immediate: true })
-onBeforeRouteLeave(() => !dirty.value || window.confirm('Modifications non enregistrées : quitter quand même ?'))
+onBeforeRouteLeave(() => !dirty.value
+  || window.confirm(`Modifications non enregistrées (${changed.value.join(', ')}) : quitter quand même ?`))
 onMounted(() => { window.addEventListener('keydown', onKey); window.addEventListener('beforeunload', beforeUnload) })
 onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.removeEventListener('beforeunload', beforeUnload) })
 </script>
@@ -238,7 +268,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
 
     <nav class="tabs">
       <button v-for="(label, code) in TABS" :key="code" type="button" :class="{ on: tab === code }" @click="tab = code">{{ label }}</button>
-      <span v-if="dirty" class="hint">modifications non enregistrées</span>
+      <span v-if="dirty" class="hint">modifications non enregistrées : {{ changed.join(', ') }}</span>
       <span v-if="message" class="ok">{{ message }}</span>
       <span v-if="error" class="error">{{ error }}</span>
     </nav>
