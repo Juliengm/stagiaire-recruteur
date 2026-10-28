@@ -2,15 +2,16 @@
 from datetime import date
 from typing import Annotated, Any
 
-from db.models import Application, Offer
+from db.models import Application, ApplicationDraft, Offer
 from db.rules import CLOSED_STATUSES, Status
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from veille_api.db import get_session
+from veille_api.drafts import remove_dossier
 from veille_api.xlsx_import import parse_workbook
 
 router = APIRouter(tags=["candidatures"])
@@ -112,6 +113,21 @@ def update_application(application_id: int, body: ApplicationPatch,
         setattr(app, key, value)
     session.commit()
     return _out(app, date.today())
+
+
+@router.delete("/applications/{application_id}", status_code=204)
+def delete_application(application_id: int,
+                       session: Annotated[Session, Depends(get_session)]) -> Response:
+    """Supprime la candidature et son dossier ; l'offre passe en « écartée »."""
+    app = session.get(Application, application_id)
+    if app is None:
+        raise HTTPException(404, "candidature inconnue")
+    draft = session.get(ApplicationDraft, app.draft_id) if app.draft_id else None
+    session.delete(app)
+    session.flush()
+    remove_dossier(session, draft, app.offer_id)
+    session.commit()
+    return Response(status_code=204)
 
 
 @router.post("/applications/import-xlsx")

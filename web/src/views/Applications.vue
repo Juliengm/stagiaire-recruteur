@@ -47,6 +47,19 @@ async function add() {
   }
 }
 
+// supprime aussi le dossier (vue Brouillons) dont vient la candidature ; l'offre passe en « écartée »
+async function remove(app) {
+  const what = app.draft_id ? 'cette candidature et son dossier' : 'cette candidature'
+  if (!window.confirm(`Supprimer définitivement ${what} (${app.organization ?? 'sans organisation'}) ?`)) return
+  try {
+    await api.del(`/applications/${app.id}`)
+    apps.value = apps.value.filter((a) => a.id !== app.id)
+    message.value = 'Candidature supprimée'
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
 async function importFile(event) {
   const file = event.target.files[0]
   if (!file) return
@@ -89,7 +102,7 @@ onMounted(load)
   <table>
     <thead>
       <tr><th>Onglet</th><th>Organisation</th><th>Poste visé</th><th>Contact / lien</th><th>CV envoyé</th>
-        <th>Statut</th><th>Envoyée le</th><th>Relance</th><th>Notes</th></tr>
+        <th>Statut</th><th>Envoyée le</th><th>Relance</th><th>Notes</th><th></th></tr>
     </thead>
     <tbody>
       <tr v-for="a in apps" :key="a.id" :class="{ late: a.follow_up_due }">
@@ -105,7 +118,13 @@ onMounted(load)
           </td>
           <td v-else><input v-model="a[f]" @change="save(a, f)" /></td>
         </template>
+        <td><button class="remove" title="Supprimer la candidature" @click="remove(a)">✕</button></td>
       </tr>
     </tbody>
   </table>
 </template>
+
+<style scoped>
+button.remove { background: none; border: 0; color: var(--muted); cursor: pointer; }
+button.remove:hover { color: var(--late-fg); }
+</style>

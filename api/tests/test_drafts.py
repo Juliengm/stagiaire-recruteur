@@ -23,6 +23,7 @@ class FakeGmail:
     def __init__(self) -> None:
         self.saved: list[tuple[str, str | None]] = []
         self.threads: dict[str, tuple[str, date | None]] = {}
+        self.sent: dict[tuple[str, str], date] = {}  # (destinataire, objet) → envoi hors du fil connu
 
     def account(self) -> str:
         return "moi@example.org"
@@ -33,6 +34,10 @@ class FakeGmail:
 
     def thread_state(self, thread_id: str) -> tuple[str, date | None]:
         return self.threads.get(thread_id, ("pending", None))
+
+    def sent_since(self, to: str, subject: str, since: date) -> date | None:
+        found = self.sent.get((to, subject))
+        return found if found and found >= since else None
 
 
 @pytest.fixture
@@ -86,6 +91,8 @@ def test_letter_preview_is_a_pdf(client: TestClient, session: Session, gmail: Fa
     draft = _draft(client, session)
     resp = client.get(f"/drafts/{draft['id']}/letter.pdf")
     assert resp.status_code == 200 and resp.content.startswith(b"%PDF")
+    resp = client.get(f"/drafts/{draft['id']}/letter.pdf?download=true")
+    assert resp.headers["content-disposition"] == 'attachment; filename="LM_Julien_Gasser_Morlay_ONG_A.pdf"'
 
 
 def test_deposit_creates_gmail_draft_and_application(client: TestClient, session: Session,
@@ -203,3 +210,50 @@ def test_rejecting_offer_discards_only_empty_dossier(client: TestClient, session
         client.patch(f"/offers/{offer_id}/status", json={"status": "ignored"})
     assert client.get(f"/drafts/{empty['id']}").json()["status"] == "discarded"
     assert client.get(f"/drafts/{written['id']}").json()["status"] == "draft"
+
+
+def test_sent_after_edit_in_gmail_is_not_discarded(client: TestClient, session: Session,
+                                                   gmail: FakeGmail) -> None:
+    draft = _draft(client, session)
+    client.post(f"/drafts/{draft['id']}/deposit", json={})
+    gmail.threads["t-1"] = ("missing", None)  # modifié dans Gmail puis envoyé : nouveau fil
+    gmail.sent[("rh@example.org", draft["subject"])] = date.today()
+    assert client.post("/drafts/sync").json() == {"sent": 1, "discarded": 0}
+    assert client.get(f"/drafts/{draft['id']}").json()["status"] == "sent"
+
+
+def test_delete_dossier_at_any_stage(client: TestClient, session: Session, gmail: FakeGmail) -> None:
+    draft = _draft(client, session)
+    client.post(f"/drafts/{draft['id']}/deposit", json={})
+    gmail.threads["t-1"] = ("sent", date(2026, 11, 2))
+    client.post("/drafts/sync")  # envoyée, avec sa candidature
+    assert client.delete(f"/drafts/{draft['id']}").status_code == 204
+    assert client.get(f"/drafts/{draft['id']}").status_code == 404
+    assert session.scalars(select(Application).execution_options(populate_existing=True)).all() == []
+    status = session.get_one(UserStatus, draft["offer_id"], populate_existing=True)
+    assert status.status == "ignored"  # /candidatures ne la reprendra pas
+    assert client.delete(f"/drafts/{draft['id']}").status_code == 404
+
+
+def test_delete_application_removes_its_dossier(client: TestClient, session: Session,
+                                                gmail: FakeGmail) -> None:
+    draft = _draft(client, session)
+    client.post(f"/drafts/{draft['id']}/deposit", json={})
+    app_id = client.get("/applications").json()[0]["id"]
+    assert client.delete(f"/applications/{app_id}").status_code == 204
+    assert client.get("/applications").json() == []
+    assert client.get(f"/drafts/{draft['id']}").status_code == 404
+    manual = client.post("/applications", json={"organization": "Sans dossier"}).json()
+    assert client.delete(f"/applications/{manual['id']}").status_code == 204
+
+
+def test_portal_application_marked_sent_by_hand(client: TestClient, session: Session,
+                                                gmail: FakeGmail) -> None:
+    draft = _draft(client, session, recipient=None, apply_url="https://portail.example.org")
+    out = client.post(f"/drafts/{draft['id']}/sent", json={"sent_at": "2026-10-27"}).json()
+    assert out["status"] == "sent" and out["sent_at"] == "2026-10-27"
+    app_row = session.scalars(select(Application)).one()
+    assert app_row.status == "applied" and app_row.follow_up_at == date(2026, 11, 6)
+    assert app_row.contact == "https://portail.example.org" and app_row.draft_id == draft["id"]
+    assert session.get_one(UserStatus, draft["offer_id"]).status == "applied"
+    assert client.post(f"/drafts/{draft['id']}/sent", json={}).status_code == 409

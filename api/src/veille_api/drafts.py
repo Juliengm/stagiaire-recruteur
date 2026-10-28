@@ -11,7 +11,7 @@ import os
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
-from typing import Annotated, Any, Literal, Protocol
+from typing import Annotated, Literal, Protocol
 from zoneinfo import ZoneInfo
 
 import nh3
@@ -65,6 +65,7 @@ class Gmail(Protocol):
     def account(self) -> str: ...
     def save_draft(self, raw: str, draft_id: str | None) -> tuple[str, str]: ...
     def thread_state(self, thread_id: str) -> tuple[str, date | None]: ...
+    def sent_since(self, to: str, subject: str, since: date) -> date | None: ...
 
 
 class GoogleGmail:
@@ -110,6 +111,13 @@ class GoogleGmail:
         if not sent:
             return "pending", None
         return "sent", datetime.fromtimestamp(min(sent) / 1000, TZ).date()
+
+    def sent_since(self, to: str, subject: str, since: date) -> date | None:
+        """Date d'envoi d'un message à `to` sous cet objet, retrouvé dans les envoyés (fils seulement)."""
+        query = f'in:sent to:{to} subject:"{subject.replace(chr(34), " ")}" after:{since - timedelta(days=1):%Y/%m/%d}'
+        found = self.users.threads().list(userId="me", q=query, maxResults=5).execute().get("threads", [])
+        dates = [d for t in found if (d := self.thread_state(t["id"])[1]) and d >= since]
+        return min(dates) if dates else None
 
 
 def get_gmail() -> Gmail:
@@ -256,6 +264,29 @@ def create_draft(body: DraftIn, session: Annotated[Session, Depends(get_session)
     return DraftOut.of(draft)
 
 
+def remove_dossier(session: Session, draft: ApplicationDraft | None, offer_id: int | None) -> None:
+    """Supprime le dossier et les candidatures qui en viennent ; l'offre passe en « écartée » pour que
+    /candidatures ne la reprenne pas. Rien n'est touché dans Gmail."""
+    if draft is not None:
+        for application in session.scalars(select(Application).where(Application.draft_id == draft.id)):
+            session.delete(application)
+        session.flush()
+        session.delete(draft)
+    if offer_id is not None:
+        stmt = insert(UserStatus).values(offer_id=offer_id, status="ignored")
+        session.execute(stmt.on_conflict_do_update(index_elements=[UserStatus.offer_id],
+                                                   set_={"status": "ignored", "updated_at": func.now()}))
+
+
+@router.delete("/drafts/{draft_id}", status_code=204)
+def delete_draft(draft_id: int, session: Annotated[Session, Depends(get_session)]) -> Response:
+    """Suppression à toute étape (à relire, dans Gmail, envoyée, abandonnée)."""
+    draft = _get(session, draft_id, lock=True)
+    remove_dossier(session, draft, draft.offer_id)
+    session.commit()
+    return Response(status_code=204)
+
+
 @router.post("/offers/{offer_id}/draft")
 def open_dossier(offer_id: int, session: Annotated[Session, Depends(get_session)]) -> DraftOut:
     """Dossier de candidature d'une offre : celui en cours, sinon un dossier vide (offre, CV conseillé,
@@ -314,11 +345,14 @@ def update_draft(draft_id: int, body: DraftPatch,
 
 
 @router.get("/drafts/{draft_id}/letter.pdf")
-def letter_preview(draft_id: int, session: Annotated[Session, Depends(get_session)]) -> Response:
+def letter_preview(draft_id: int, session: Annotated[Session, Depends(get_session)],
+                   download: bool = False) -> Response:
+    """Lettre en PDF : affichée, ou téléchargée (`download=true`) pour un dépôt sur un portail."""
     draft = _get(session, draft_id)
     pdf, _ = render_letter(draft.letter_html, letter_css())
+    disposition = "attachment" if download else "inline"
     return Response(pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'inline; filename="{draft.letter_filename}"'})
+                    headers={"Content-Disposition": f'{disposition}; filename="{draft.letter_filename}"'})
 
 
 def _checks(session: Session, draft: ApplicationDraft, letter_pages: int) -> tuple[list[str], list[str]]:
@@ -388,32 +422,63 @@ def deposit(draft_id: int, body: DepositIn, session: Annotated[Session, Depends(
     return DepositOut(draft=DraftOut.of(draft), warnings=warnings)
 
 
+def _record_sent(session: Session, draft: ApplicationDraft, sent_on: date, note: str | None = None) -> None:
+    """Dossier « envoyée », candidature « postulé » (créée au besoin) avec relance, offre « postulé »."""
+    draft.status, draft.sent_at = "sent", sent_on
+    application = session.scalar(select(Application).where(Application.draft_id == draft.id))
+    if application is None:
+        application = Application(
+            offer_id=draft.offer_id, organization=draft.organization, position=draft.position,
+            contact=draft.recipient or draft.apply_url, cv_sent=draft.cv_file, draft_id=draft.id, notes=note)
+        session.add(application)
+    application.status, application.sent_at = "applied", sent_on
+    application.follow_up_at = sent_on + timedelta(days=FOLLOW_UP_DAYS)
+    if draft.offer_id:
+        stmt = insert(UserStatus).values(offer_id=draft.offer_id, status="applied")
+        session.execute(stmt.on_conflict_do_update(index_elements=[UserStatus.offer_id],
+                                                   set_={"status": "applied"}))
+
+
 @router.post("/drafts/sync")
 def sync_drafts(session: Annotated[Session, Depends(get_session)],
                 gmail: Annotated[Gmail, Depends(get_gmail)]) -> SyncOut:
-    """Brouillons déposés : envoyés par Julien → « postulé » et relance à 10 jours ; supprimés → abandon."""
+    """Brouillons déposés : envoyés par Julien → « postulé » et relance à 10 jours ; supprimés → abandon.
+
+    Un brouillon modifié puis envoyé depuis Gmail peut changer de fil : un fil disparu n'est un abandon
+    que si aucun message au même destinataire et sous le même objet n'est parti depuis le dépôt."""
     sent = discarded = 0
     for draft in session.scalars(select(ApplicationDraft).where(
             ApplicationDraft.status == "deposited", ApplicationDraft.gmail_thread_id.is_not(None))):
         state, sent_on = gmail.thread_state(draft.gmail_thread_id or "")
-        application = session.scalar(select(Application).where(Application.draft_id == draft.id))
+        if state == "missing" and draft.recipient and draft.deposited_at:
+            found = gmail.sent_since(draft.recipient, draft.subject, draft.deposited_at.astimezone(TZ).date())
+            if found:
+                state, sent_on = "sent", found
         if state == "sent" and sent_on:
-            draft.status, draft.sent_at = "sent", sent_on
-            values: dict[str, Any] = {"status": "applied", "sent_at": sent_on,
-                                      "follow_up_at": sent_on + timedelta(days=FOLLOW_UP_DAYS)}
+            _record_sent(session, draft, sent_on)
             sent += 1
         elif state == "missing":
             draft.status = "discarded"
-            values = {"status": "ignored"}
+            if application := session.scalar(select(Application).where(Application.draft_id == draft.id)):
+                application.status = "ignored"
             discarded += 1
-        else:
-            continue
-        if application:
-            for key, value in values.items():
-                setattr(application, key, value)
-        if draft.offer_id and state == "sent":
-            stmt = insert(UserStatus).values(offer_id=draft.offer_id, status="applied")
-            session.execute(stmt.on_conflict_do_update(index_elements=[UserStatus.offer_id],
-                                                       set_={"status": "applied"}))
     session.commit()
     return SyncOut(sent=sent, discarded=discarded)
+
+
+class SentIn(BaseModel):
+    sent_at: date | None = None  # vide : aujourd'hui (heure de Madagascar)
+
+
+@router.post("/drafts/{draft_id}/sent")
+def mark_sent(draft_id: int, body: SentIn, session: Annotated[Session, Depends(get_session)]) -> DraftOut:
+    """Candidature faite hors de Gmail (portail, formulaire, autre messagerie), déclarée par Julien."""
+    draft = _get(session, draft_id, lock=True)
+    if draft.status in {"sent", "discarded"}:
+        raise HTTPException(409, "candidature déjà envoyée ou abandonnée")
+    sent_on = body.sent_at or datetime.now(TZ).date()
+    _record_sent(session, draft, sent_on,
+                 note=f"envoyée le {sent_on:%d/%m/%Y}" + (" sur le portail" if draft.apply_url else ""))
+    draft.updated_at = datetime.now(UTC)
+    session.commit()
+    return DraftOut.of(draft)

@@ -26,6 +26,7 @@ export const api = {
   },
   post: (path, body) => request('POST', path, body),
   patch: (path, body) => request('PATCH', path, body),
+  del: (path) => request('DELETE', path),
 }
 
 export const STATUSES = {

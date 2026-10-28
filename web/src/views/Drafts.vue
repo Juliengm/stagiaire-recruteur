@@ -41,6 +41,7 @@ const applyUrl = computed(() => draft.value?.apply_url || offer.value?.apply_url
 const URL_RE = /(https?:\/\/[^\s<>()"']*[^\s<>()"'.,;:!?])/
 const offerParts = computed(() => (offer.value?.description ?? '').split(URL_RE)
   .map((text, i) => ({ text, link: i % 2 === 1 })))
+const letterEmpty = computed(() => !draft.value?.letter_html?.replace(/<[^>]*>/g, '').trim())
 const daysLeft = computed(() => (offer.value?.deadline ? (new Date(offer.value.deadline) - new Date()) / 864e5 : null))
 
 const shown = computed(() => drafts.value.filter((d) =>
@@ -96,8 +97,12 @@ async function save() {
   }
 }
 
-async function preview() {
-  if (await save()) window.open(`/api/drafts/${draft.value.id}/letter.pdf`, '_blank')
+// la lettre est rendue côté serveur : on enregistre d'abord pour qu'elle suive le texte affiché
+async function letter(download) {
+  if (!(await save())) return
+  const url = `/api/drafts/${draft.value.id}/letter.pdf`
+  if (download) window.location.href = `${url}?download=true`
+  else window.open(url, '_blank')
 }
 
 async function deposit(force = false) {
@@ -123,10 +128,29 @@ async function deposit(force = false) {
   }
 }
 
-async function discard() {
-  if (!window.confirm('Abandonner cette candidature ? (un brouillon déjà déposé reste dans Gmail)')) return
+// candidature faite ailleurs que par un dépôt Gmail (portail, formulaire) : « postulé », relance à 10 jours
+async function markSent() {
+  const today = new Date().toLocaleDateString('fr-CA')  // AAAA-MM-JJ
+  const answer = window.prompt('Date d\'envoi de la candidature (AAAA-MM-JJ) :', today)
+  if (answer === null) return
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(answer.trim())) { error.value = 'Date attendue au format AAAA-MM-JJ'; return }
   try {
-    applyServer(await api.patch(`/drafts/${draft.value.id}`, { status: 'discarded' }))
+    if (!(await save())) return
+    applyServer(await api.post(`/drafts/${draft.value.id}/sent`, { sent_at: answer.trim() }))
+    message.value = 'Candidature enregistrée comme envoyée : relance dans 10 jours (vue Candidatures).'
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
+// suppression à toute étape : le dossier, sa candidature ; l'offre passe en « écartée »
+async function remove() {
+  const gmail = ['deposited', 'sent'].includes(draft.value.status)
+    ? '\n\nLe brouillon ou le message dans Gmail n\'est pas touché.' : ''
+  if (!window.confirm(`Supprimer définitivement ce dossier et sa candidature ? L'offre passera en « écartée ».${gmail}`)) return
+  try {
+    await api.del(`/drafts/${draft.value.id}`)
+    draft.value = null  // plus rien à enregistrer : pas d'alerte en quittant
     router.push('/brouillons')
   } catch (e) {
     error.value = e.message
@@ -248,6 +272,13 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
         </select>
         <a v-if="draft.cv_file" :href="`/api/cvs/${draft.cv_file}`" target="_blank">voir le CV</a>
       </label>
+      <div class="row">
+        <span>Lettre</span>
+        <span v-if="letterEmpty" class="hint">vide : pas de lettre jointe</span>
+        <span v-else class="file">{{ draft.letter_filename }}
+          <a href="#" @click.prevent="letter(true)">télécharger</a>
+          <a href="#" @click.prevent="letter(false)">voir</a></span>
+      </div>
       <h3>E-mail</h3>
       <RichEditor v-model="draft.email_html" :editable="editable" />
       <h3>Lettre de motivation <span class="hint">({{ draft.letter_filename }}, une page au plus ; vide : pas de lettre jointe)</span></h3>
@@ -256,11 +287,12 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
 
     <div class="bar actions">
       <button :disabled="!dirty || !editable" @click="save">Enregistrer <kbd>Ctrl+S</kbd></button>
-      <button @click="preview">Aperçu de la lettre (PDF)</button>
       <button v-if="draft.recipient" class="primary" :disabled="busy || !editable" @click="deposit(false)">
         {{ busy ? 'Dépôt…' : draft.gmail_draft_id ? 'Redéposer dans Gmail' : 'Déposer dans Gmail' }}</button>
+      <button v-if="!draft.recipient && editable" class="primary" @click="markSent">J'ai postulé sur le portail</button>
+      <button v-else-if="editable" @click="markSent" title="Envoyée autrement que par le brouillon Gmail">Marquer comme envoyée</button>
       <a v-if="draft.status === 'deposited'" href="https://mail.google.com/mail/u/0/#drafts" target="_blank">Ouvrir les brouillons Gmail</a>
-      <button v-if="editable" class="link" @click="discard">Abandonner</button>
+      <button class="link" @click="remove">Supprimer le dossier</button>
     </div>
   </section>
   <p v-else-if="error" class="error">{{ error }}</p>
@@ -283,6 +315,8 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); window.rem
 fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .5rem; }
 label { display: grid; grid-template-columns: 7rem 1fr auto; gap: .5rem; align-items: center; }
 label input, label select { padding: 3px 5px; }
+.row { display: grid; grid-template-columns: 7rem 1fr; gap: .5rem; align-items: center; }
+.row .file a { margin-left: .8rem; }
 textarea { font: inherit; padding: 4px 6px; resize: vertical; }
 h3 { margin: .8rem 0 .2rem; font-size: 14px; }
 .checks { border: 1px solid var(--late-fg); border-radius: 4px; padding: .4rem .8rem; margin-bottom: .6rem; }
