@@ -21,6 +21,8 @@ def parse_linkedin(msg: EmailMessage) -> list[dict[str, Any]]:
         job_id = _JOB_ID.search(match.group(1))
         # Avant le lien : titre / organisation / lieu forment un paragraphe de 3 lignes ; les mentions
         # (« recrute activement », « 1 ancien élève ») et l'en-tête de l'e-mail sont sur 1-2 lignes.
+        # Quand l'en-tête (« Votre alerte Emploi pour… ») colle à l'offre sans ligne vide, il la précède :
+        # on garde les 3 dernières lignes.
         paragraphs = [
             [line.strip() for line in para.splitlines() if line.strip()]
             for para in re.split(r"\n\s*\n", block[: match.start()])
@@ -28,7 +30,7 @@ def parse_linkedin(msg: EmailMessage) -> list[dict[str, Any]]:
         job = [p for p in paragraphs if len(p) >= 3]
         if not job_id or not job:
             continue
-        title, organization, location = job[-1][:3]
+        title, organization, location = job[-1][-3:]
         offers.append({
             "platform": "linkedin", "job_id": job_id.group(1), "title": title,
             "organization": organization, "location": location,

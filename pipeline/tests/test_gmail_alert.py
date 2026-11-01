@@ -1,6 +1,7 @@
 import base64
 from datetime import UTC, datetime
 from email import message_from_bytes, policy
+from email.message import EmailMessage
 
 from veille_pipeline.connectors.gmail_alert import GmailAlertConnector
 from veille_pipeline.email_parsers.developmentaid import parse_developmentaid
@@ -142,6 +143,19 @@ def test_linkedin_similar_jobs_skip_the_reference_offer(fixtures):
     jobs = parse_linkedin(_load(fixtures, "linkedin_similar.anon.eml"))
     assert len(jobs) == 10 and "4383502509" not in {j["job_id"] for j in jobs}
     assert jobs[0]["organization"] == "CHU de Reims"
+
+
+def test_linkedin_header_glued_to_offer():
+    # alerte à une offre : pas de ligne vide entre « Votre alerte Emploi pour… » et le titre
+    msg = EmailMessage()
+    msg.set_content(
+        "Votre alerte Emploi pour Monitoring, Evaluation and Learning Expert (Antananarivo)            \n"
+        "Head of Impact, Innovation and Influencing.\nSave the Children International\nAntananarivo\n\n"
+        "Cette entreprise recrute activement\n"
+        "Voir l\u2019offre d\u2019emploi\u00a0: https://www.linkedin.com/comm/jobs/view/4482077942/?trackingId=x\n")
+    [job] = parse_linkedin(msg)
+    assert (job["title"], job["organization"], job["location"]) == (
+        "Head of Impact, Innovation and Influencing.", "Save the Children International", "Antananarivo")
 
 
 def test_developmentaid_table_layout(fixtures):
