@@ -87,6 +87,16 @@ def test_cvs_listed_and_unknown_cv_refused(client: TestClient, session: Session,
     assert client.patch(f"/drafts/{draft['id']}", json={"cv_file": "autre.pdf"}).status_code == 422
 
 
+def test_patch_updates_portal_and_notes(client: TestClient, session: Session, gmail: FakeGmail) -> None:
+    draft = _draft(client, session)
+    changes = {"apply_url": "https://exemple.org/postuler", "required_documents": "Trois questions",
+               "weaknesses": "Pas de dbt", "segment": "tech", "language": "fr"}
+    edited = client.patch(f"/drafts/{draft['id']}", json=changes)
+    assert edited.status_code == 200, edited.text
+    assert {k: edited.json()[k] for k in changes} == changes
+    assert client.patch(f"/drafts/{draft['id']}", json={"segment": "autre"}).status_code == 422
+
+
 def test_letter_preview_is_a_pdf(client: TestClient, session: Session, gmail: FakeGmail) -> None:
     draft = _draft(client, session)
     resp = client.get(f"/drafts/{draft['id']}/letter.pdf")

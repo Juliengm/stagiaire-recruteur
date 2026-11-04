@@ -156,6 +156,13 @@ class DraftPatch(BaseModel):
     email_html: str | None = None
     letter_html: str | None = None
     company_info: str | None = None
+    required_documents: str | None = None
+    weaknesses: str | None = None
+    apply_url: str | None = None
+    position: str | None = None
+    language: Literal["fr", "en"] | None = None
+    segment: Literal["tech", "institutionnel"] | None = None
+    letter_filename: str | None = None
     status: Literal["draft", "discarded"] | None = None
 
     @field_validator("email_html", "letter_html")
