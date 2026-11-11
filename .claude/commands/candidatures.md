@@ -136,8 +136,8 @@ Contenu des paragraphes :
 2. **Deux ou trois références précises** de `cv/faits.md`, choisies pour cette offre, avec leurs
    chiffres exacts. Pas une liste de compétences.
 3. **Ce qu'il apporte à cette organisation** : un lien concret avec la mission décrite dans l'offre.
-4. **Disponibilité et zone**, avec la formulation de `cv/faits.md`. Pour une offre à Lille, cite le lien
-   avec Lille.
+4. **Disponibilité et zone**, avec la formulation de `cv/faits.md`. Pour une offre à Lille, la phrase
+   sur le retour à Lille suffit : pas de phrase sur la licence ni sur Élevages sans frontières.
 
 Candidature spontanée : le paragraphe 1 part d'un fait précis et daté de la recherche (un projet,
 un engagement du rapport RSE, une exigence d'un bailleur), pas d'une annonce. Le paragraphe 3

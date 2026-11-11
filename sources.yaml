@@ -403,5 +403,6 @@ sources:
         developmentaid: {from_contains: developmentaid.info} # info@ ; envoie aussi des webinaires (0 offre lue)
         welcometothejungle: {from_contains: welcometothejungle}
         apec: {from_contains: apec.fr}
+        hellowork: {from_contains: hellowork.com}         # emails.hellowork.com ; robots.txt interdit recherche, RSS et URL à « ? » (constaté le 04/11/2026)
         untalent: {from_contains: untalent.org}
         unvacancies: {from_contains: unvacancies.org}     # alerts@unvacancies.org (constaté le 21/10/2026)
